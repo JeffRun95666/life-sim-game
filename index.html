@@ -1,0 +1,2509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lil' Life — Full Lifestyle Sim</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 100%; height: 100%; overflow: hidden; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background: #1f2937; color: #1f2937;
+    user-select: none; -webkit-user-select: none;
+  }
+  #topbar {
+    height: 48px; background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: #fff; display: flex; align-items: center; padding: 0 14px; gap: 10px;
+    flex-shrink: 0;
+  }
+  #topbar h1 { font-size: 17px; font-weight: 700; }
+  .pill {
+    background: rgba(255,255,255,0.18); padding: 4px 10px; border-radius: 14px;
+    font-size: 12px; font-weight: 600; white-space: nowrap;
+  }
+  .topbar-spacer { flex: 1; }
+  .speed-ctl { display: flex; gap: 4px; }
+  .speed-ctl button {
+    background: rgba(255,255,255,0.18); border: none; color: #fff;
+    width: 30px; height: 30px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600;
+  }
+  .speed-ctl button:hover { background: rgba(255,255,255,0.3); }
+  .speed-ctl button.active { background: #fbbf24; color: #1f2937; }
+  .top-btn {
+    background: rgba(255,255,255,0.18); border: none; color: #fff;
+    padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;
+  }
+  .top-btn:hover { background: rgba(255,255,255,0.3); }
+  #main-area { display: flex; height: calc(100vh - 48px); }
+  #canvas-wrap {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    background: #111827; position: relative; padding: 10px; overflow: hidden;
+  }
+  #game {
+    background: #86c25e; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    cursor: pointer; max-width: 100%; max-height: 100%;
+  }
+  #ui-panel {
+    width: 320px; background: #f9fafb; overflow-y: auto;
+    display: flex; flex-direction: column; border-left: 1px solid #e5e7eb; flex-shrink: 0;
+  }
+  .panel-section { padding: 12px 16px; border-bottom: 1px solid #e5e7eb; }
+  .panel-section h2 {
+    font-size: 11px; font-weight: 700; color: #6b7280;
+    text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 10px;
+  }
+  .need { margin-bottom: 8px; }
+  .need:last-child { margin-bottom: 0; }
+  .need-label {
+    display: flex; justify-content: space-between; font-size: 12px;
+    color: #374151; margin-bottom: 3px; align-items: center;
+  }
+  .need-name { display: flex; align-items: center; gap: 5px; font-weight: 500; }
+  .need-bar { height: 7px; background: #e5e7eb; border-radius: 4px; overflow: hidden; }
+  .need-fill { height: 100%; border-radius: 4px; transition: width 0.3s, background 0.3s; }
+  .vital-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .vital {
+    background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 8px;
+    text-align: center;
+  }
+  .vital-label { font-size: 10px; color: #6b7280; text-transform: uppercase; font-weight: 600; }
+  .vital-val { font-size: 16px; font-weight: 700; margin-top: 2px; }
+  .btn {
+    display: block; width: 100%; padding: 10px;
+    border: 1px solid #e5e7eb; border-radius: 8px;
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    margin-bottom: 6px; background: #fff; color: #1f2937;
+    font-family: inherit;
+    transition: transform 0.1s, box-shadow 0.1s, background 0.15s;
+  }
+  .btn:hover { transform: translateY(-1px); box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+  .btn:active { transform: translateY(0); }
+  .btn:last-child { margin-bottom: 0; }
+  .btn.primary { background: #6366f1; color: #fff; border-color: #6366f1; }
+  .btn.primary:hover { background: #4f46e5; }
+  .btn.success { background: #10b981; color: #fff; border-color: #10b981; }
+  .btn.success:hover { background: #059669; }
+  .btn.warn { background: #f59e0b; color: #fff; border-color: #f59e0b; }
+  .btn.warn:hover { background: #d97706; }
+  .btn.danger { background: #ef4444; color: #fff; border-color: #ef4444; }
+  .btn.danger:hover { background: #dc2626; }
+  .btn.active { background: #f59e0b; color: #fff; border-color: #f59e0b; }
+  .btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+  .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .btn-grid .btn { margin: 0; padding: 8px 4px; font-size: 12px; }
+  .relationship {
+    background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 8px;
+    margin-bottom: 6px;
+  }
+  .relationship:last-child { margin-bottom: 0; }
+  .rel-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 4px; font-size: 12px;
+  }
+  .rel-name { font-weight: 600; }
+  .rel-status { font-size: 10px; color: #6b7280; }
+  .rel-bar { height: 5px; background: #e5e7eb; border-radius: 3px; overflow: hidden; }
+  .rel-fill { height: 100%; background: linear-gradient(90deg, #ec4899, #f43f5e); transition: width 0.3s; }
+  .modal {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.55);
+    display: flex; align-items: center; justify-content: center; z-index: 100;
+    backdrop-filter: blur(2px);
+  }
+  .modal.hidden { display: none; }
+  .modal-content {
+    background: #fff; border-radius: 16px; padding: 22px;
+    max-width: 580px; width: 92%; max-height: 84vh; overflow-y: auto;
+  }
+  .modal-content.wide { max-width: 720px; }
+  .modal-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 14px;
+  }
+  .modal-header h2 { font-size: 20px; }
+  .modal-close {
+    background: none; border: none; font-size: 26px; cursor: pointer;
+    color: #6b7280; line-height: 1; padding: 0 4px;
+  }
+  .modal-close:hover { color: #1f2937; }
+  .shop-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .shop-item {
+    border: 1px solid #e5e7eb; border-radius: 12px; padding: 12px 10px;
+    text-align: center; cursor: pointer; background: #fff;
+    transition: transform 0.1s, border-color 0.15s, box-shadow 0.15s;
+  }
+  .shop-item:hover {
+    transform: translateY(-2px); border-color: #6366f1;
+    box-shadow: 0 4px 12px rgba(99,102,241,0.15);
+  }
+  .shop-item.locked { opacity: 0.45; cursor: not-allowed; }
+  .shop-item.locked:hover { transform: none; border-color: #e5e7eb; box-shadow: none; }
+  .shop-item-icon {
+    width: 50px; height: 50px; margin: 0 auto 6px;
+    border-radius: 10px; display: flex; align-items: center; justify-content: center;
+    font-size: 26px;
+  }
+  .shop-item-name { font-size: 13px; font-weight: 600; }
+  .shop-item-price { font-size: 13px; color: #10b981; font-weight: 700; margin-top: 2px; }
+  .shop-item-desc { font-size: 10px; color: #6b7280; margin-top: 3px; line-height: 1.3; }
+  #floating-menu {
+    position: absolute; background: #fff; border-radius: 8px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.25); padding: 4px;
+    z-index: 50; display: flex; gap: 4px;
+  }
+  #floating-menu.hidden { display: none; }
+  .menu-btn {
+    padding: 6px 12px; border: none; background: #f3f4f6;
+    border-radius: 6px; font-size: 13px; cursor: pointer;
+    color: #1f2937; font-weight: 500; font-family: inherit;
+  }
+  .menu-btn:hover { background: #e5e7eb; }
+  .menu-btn.use { background: #6366f1; color: #fff; }
+  .menu-btn.use:hover { background: #4f46e5; }
+  .menu-btn.delete { background: #ef4444; color: #fff; }
+  .menu-btn.delete:hover { background: #dc2626; }
+  #status-msg {
+    position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%);
+    background: rgba(0,0,0,0.78); color: #fff; padding: 8px 16px;
+    border-radius: 8px; font-size: 13px; pointer-events: none;
+    transition: opacity 0.3s; opacity: 0; white-space: nowrap;
+  }
+  #status-msg.show { opacity: 1; }
+  #notifications {
+    position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+    display: flex; flex-direction: column; gap: 6px;
+    pointer-events: none; z-index: 60; align-items: center; max-width: 80%;
+  }
+  .notification {
+    background: rgba(255,255,255,0.96); color: #1f2937;
+    padding: 9px 14px; border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.18);
+    font-size: 12px; font-weight: 500;
+    animation: slideDown 0.3s ease; transition: opacity 0.5s;
+  }
+  .notification.money { background: #10b981; color: #fff; }
+  .notification.warning { background: #f59e0b; color: #fff; }
+  .notification.heart { background: #ec4899; color: #fff; }
+  .notification.danger { background: #ef4444; color: #fff; }
+  @keyframes slideDown {
+    from { transform: translateY(-20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  #mode-banner {
+    position: absolute; top: 14px; left: 14px;
+    background: rgba(245, 158, 11, 0.96); color: #fff;
+    padding: 8px 12px; border-radius: 8px;
+    font-size: 12px; font-weight: 600;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15); pointer-events: none;
+  }
+  #mode-banner.hidden { display: none; }
+  #mode-banner.placing { background: rgba(99, 102, 241, 0.96); }
+  .tip { font-size: 11px; color: #6b7280; line-height: 1.5; }
+  .info-row {
+    display: flex; justify-content: space-between; padding: 6px 0;
+    font-size: 13px; border-bottom: 1px dashed #e5e7eb;
+  }
+  .info-row:last-child { border-bottom: none; }
+  .info-row strong { color: #1f2937; }
+  .info-row span { color: #6b7280; }
+  .section-block {
+    background: #f9fafb; border-radius: 10px; padding: 12px; margin-bottom: 12px;
+  }
+  .section-block h3 { font-size: 14px; margin-bottom: 8px; color: #1f2937; }
+  input.txt, select.txt {
+    width: 100%; padding: 8px; border: 1px solid #d1d5db;
+    border-radius: 6px; font-size: 13px; font-family: inherit;
+  }
+  .pick-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+  .pick {
+    border: 2px solid #e5e7eb; border-radius: 10px; padding: 10px;
+    cursor: pointer; text-align: center; background: #fff;
+    transition: border-color 0.15s, transform 0.1s;
+  }
+  .pick:hover { transform: translateY(-1px); }
+  .pick.selected { border-color: #6366f1; background: #eef2ff; }
+  .pick-name { font-weight: 700; font-size: 14px; }
+  .pick-desc { font-size: 11px; color: #6b7280; margin-top: 4px; }
+  .event-choice {
+    background: #fff; border: 1px solid #e5e7eb; border-radius: 8px;
+    padding: 12px; margin-bottom: 8px; cursor: pointer; text-align: left;
+    width: 100%; font-family: inherit; font-size: 13px;
+    transition: border-color 0.15s, transform 0.1s, background 0.15s;
+  }
+  .event-choice:hover { border-color: #6366f1; transform: translateY(-1px); background: #f8fafc; }
+  .event-choice strong { color: #1f2937; }
+  .event-choice .ec-desc { color: #6b7280; font-size: 11px; margin-top: 4px; }
+  .log-entry {
+    padding: 8px 10px; border-bottom: 1px solid #e5e7eb;
+    font-size: 12px; display: flex; gap: 8px;
+  }
+  .log-entry .log-time { color: #9ca3af; flex-shrink: 0; min-width: 80px; font-size: 11px; }
+  .small { font-size: 11px; color: #6b7280; }
+  .center { text-align: center; }
+  .stock-row {
+    display: flex; align-items: center; padding: 8px 4px; gap: 10px;
+    border-bottom: 1px solid #e5e7eb; font-size: 13px;
+  }
+  .stock-row:last-child { border-bottom: none; }
+  .stock-row .stk-name { font-weight: 600; flex: 1; }
+  .stock-row .stk-price { font-weight: 600; min-width: 60px; text-align: right; }
+  .stock-row .stk-change.up { color: #10b981; }
+  .stock-row .stk-change.down { color: #ef4444; }
+  .stock-row button { padding: 4px 8px; font-size: 11px; }
+  .tabs { display: flex; gap: 4px; margin-bottom: 12px; border-bottom: 1px solid #e5e7eb; }
+  .tab { padding: 8px 12px; cursor: pointer; font-size: 13px; font-weight: 600;
+    color: #6b7280; border-bottom: 2px solid transparent; }
+  .tab.active { color: #6366f1; border-bottom-color: #6366f1; }
+  .tab:hover { color: #4f46e5; }
+</style>
+</head>
+<body>
+
+<header id="topbar">
+  <h1>🏡 Lil' Life</h1>
+  <span class="pill" id="pill-date">📅 Y1 Spring</span>
+  <span class="pill" id="pill-weather">☀️ Sunny</span>
+  <span class="pill" id="pill-age">👤 13 Teen</span>
+  <span class="pill" id="pill-money">💰 $200</span>
+  <div class="topbar-spacer"></div>
+  <div class="speed-ctl">
+    <button data-spd="0" title="Pause">⏸</button>
+    <button data-spd="1" class="active">1×</button>
+    <button data-spd="2">2×</button>
+    <button data-spd="4">4×</button>
+  </div>
+  <button class="top-btn" id="btn-save">💾 Save</button>
+  <button class="top-btn" id="btn-load">📂 Load</button>
+</header>
+
+<div id="main-area">
+  <div id="canvas-wrap">
+    <canvas id="game" width="800" height="576"></canvas>
+    <div id="floating-menu" class="hidden"></div>
+    <div id="status-msg"></div>
+    <div id="notifications"></div>
+    <div id="mode-banner" class="hidden">Edit Mode</div>
+  </div>
+
+  <aside id="ui-panel">
+    <section class="panel-section">
+      <h2>Needs</h2>
+      <div id="needs-list"></div>
+    </section>
+
+    <section class="panel-section">
+      <h2>Vitals</h2>
+      <div class="vital-grid">
+        <div class="vital"><div class="vital-label">Mood</div><div class="vital-val" id="v-mood">70</div></div>
+        <div class="vital"><div class="vital-label">Stress</div><div class="vital-val" id="v-stress">30</div></div>
+        <div class="vital"><div class="vital-label">Weight</div><div class="vital-val" id="v-weight">65kg</div></div>
+        <div class="vital"><div class="vital-label">Fitness</div><div class="vital-val" id="v-fitness">50</div></div>
+      </div>
+    </section>
+
+    <section class="panel-section">
+      <h2>Quick Actions</h2>
+      <div class="btn-grid">
+        <button class="btn primary" id="m-shop">🛒 Furniture</button>
+        <button class="btn success" id="m-work">💼 Work</button>
+        <button class="btn" id="m-career">📈 Career</button>
+        <button class="btn" id="m-side">🎯 Side Jobs</button>
+        <button class="btn" id="m-bank">🏦 Bank</button>
+        <button class="btn" id="m-stocks">📊 Stocks</button>
+        <button class="btn" id="m-insure">🛡️ Insurance</button>
+        <button class="btn" id="m-luxury">💎 Luxury</button>
+        <button class="btn" id="m-family">👪 Family</button>
+        <button class="btn" id="m-pets">🐾 Pets</button>
+        <button class="btn" id="m-hobby">🎨 Hobbies</button>
+        <button class="btn" id="m-bills">🧾 Bills</button>
+        <button class="btn" id="m-log">📜 Log</button>
+        <button class="btn" id="m-edit">🛠️ Edit</button>
+      </div>
+    </section>
+
+    <section class="panel-section">
+      <h2>Friends & Family</h2>
+      <div id="relationships-list"></div>
+    </section>
+
+    <section class="panel-section">
+      <h2>Tips</h2>
+      <p class="tip">
+        Click the map to walk. Click furniture to use it. Click neighbors to chat. Earn money, manage bills, raise kids, buy stocks, and chase your dreams!
+      </p>
+    </section>
+  </aside>
+</div>
+
+<!-- Generic modal (used for most popups) -->
+<div id="generic-modal" class="modal hidden">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2 id="modal-title"></h2>
+      <button class="modal-close" id="modal-close-btn">×</button>
+    </div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<!-- Event modal (blocking, no close button by default) -->
+<div id="event-modal" class="modal hidden">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2 id="event-title">Event</h2>
+    </div>
+    <div id="event-body"></div>
+    <div id="event-choices" style="margin-top: 12px;"></div>
+  </div>
+</div>
+
+<!-- Character creation -->
+<div id="char-modal" class="modal">
+  <div class="modal-content wide">
+    <div class="modal-header">
+      <h2>🌟 Welcome to Lil' Life!</h2>
+    </div>
+    <p style="margin-bottom: 14px; color: #6b7280;">Create your character. Pick a name, personality, and natural talent. These shape how you grow!</p>
+    <div style="margin-bottom: 16px;">
+      <label class="small" style="display:block; margin-bottom: 4px;">Your name</label>
+      <input class="txt" id="char-name" placeholder="e.g. Alex" maxlength="14" value="Alex">
+    </div>
+    <h3 style="font-size: 14px; margin-bottom: 8px;">Personality</h3>
+    <div class="pick-grid" id="char-personality"></div>
+    <h3 style="font-size: 14px; margin-bottom: 8px;">Talent</h3>
+    <div class="pick-grid" id="char-talent"></div>
+    <button class="btn primary" id="char-start" style="margin-top: 12px;">Start My Life ✨</button>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// LIL' LIFE — Full lifestyle simulation
+// ============================================================
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const TILE = 32, COLS = 25, ROWS = 18;
+const T = { GRASS: 0, PATH: 1, FLOOR: 2, WALL: 3, DOOR: 4, WORK: 5 };
+
+// =============================================================
+// CATALOGS / CONSTANTS
+// =============================================================
+const FURNITURE = {
+  bed:    { name: 'Bed',    price: 300, color: '#3b82f6', icon: '🛏️', restore: { energy: 100 },              useTime: 6, label: 'Sleep' },
+  fridge: { name: 'Fridge', price: 250, color: '#e0f2fe', icon: '🧊', restore: { hunger: 80 },               useTime: 3, label: 'Eat',  weight: 0.4 },
+  shower: { name: 'Shower', price: 200, color: '#7dd3fc', icon: '🚿', restore: { hygiene: 100 },             useTime: 4, label: 'Shower' },
+  toilet: { name: 'Toilet', price: 100, color: '#e5e7eb', icon: '🚽', restore: { hygiene: 30 },              useTime: 2, label: 'Use' },
+  tv:     { name: 'TV',     price: 350, color: '#1f2937', icon: '📺', restore: { fun: 80 },                  useTime: 5, label: 'Watch TV' },
+  sofa:   { name: 'Sofa',   price: 220, color: '#f97316', icon: '🛋️', restore: { fun: 35, energy: 25 },      useTime: 4, label: 'Relax' },
+  phone:  { name: 'Phone',  price: 150, color: '#22c55e', icon: '📞', restore: { social: 60 },               useTime: 3, label: 'Call Friend' },
+  stove:  { name: 'Stove',  price: 320, color: '#dc2626', icon: '🍳', restore: { hunger: 100, fun: 15 },     useTime: 4, label: 'Cook',   weight: 0.6 },
+  desk:   { name: 'Desk',   price: 280, color: '#7c3aed', icon: '📚', restore: { fun: -5 },                  useTime: 5, label: 'Study',  study: 2 },
+  treadmill: { name: 'Treadmill', price: 400, color: '#0ea5e9', icon: '🏃', restore: { fun: 10, energy: -10 }, useTime: 5, label: 'Exercise', fitness: 4, weight: -0.8 },
+};
+
+const NPC_DATA = [
+  { name: 'Sarah', color: '#ec4899', startC: 17, startR: 13, hairColor: '#7c2d12' },
+  { name: 'Mike',  color: '#3b82f6', startC: 21, startR: 15, hairColor: '#1f2937' },
+  { name: 'Emma',  color: '#a855f7', startC: 15, startR: 16, hairColor: '#facc15' },
+];
+
+const PERSONALITIES = {
+  Friendly:    { desc: '+30% friendship gain' },
+  Hardworking: { desc: '+25% salary' },
+  Studious:    { desc: '+30% education gain' },
+  Charming:    { desc: '+25% love gain' },
+  Adventurous: { desc: '+25% fun gain, more events' },
+  Frugal:      { desc: '-20% bills, +20% interest' },
+};
+const TALENTS = {
+  Smart:       { desc: '+30% study skill gain' },
+  Strong:      { desc: '-25% energy decay' },
+  Lucky:       { desc: 'Better random outcomes' },
+  Artistic:    { desc: '+30% hobby progress' },
+  Athletic:    { desc: '+30% fitness gain' },
+  Charismatic: { desc: '+25% love & social' },
+};
+
+const JOBS = [
+  { title: 'Unemployed', salary: 0,    eduReq: 0,  skillReq: 0,  ageReq: 13 },
+  { title: 'Intern',     salary: 200,  eduReq: 0,  skillReq: 0,  ageReq: 13 },
+  { title: 'Junior',     salary: 320,  eduReq: 5,  skillReq: 5,  ageReq: 16 },
+  { title: 'Senior',     salary: 500,  eduReq: 15, skillReq: 15, ageReq: 20 },
+  { title: 'Supervisor', salary: 750,  eduReq: 30, skillReq: 25, ageReq: 22 },
+  { title: 'Manager',    salary: 1100, eduReq: 50, skillReq: 40, ageReq: 25 },
+  { title: 'Director',   salary: 1500, eduReq: 75, skillReq: 60, ageReq: 30 },
+  { title: 'CEO',        salary: 2200, eduReq: 100,skillReq: 90, ageReq: 35 },
+];
+
+const SIDE_JOBS = [
+  { name: 'Food Delivery', icon: '🛵', pay: 60,  energy: -12, fun: -3,  social: 0 },
+  { name: 'Live Stream',   icon: '🎥', pay: 90,  energy: -8,  fun: 5,   social: 8  },
+  { name: 'Freelance Gig', icon: '💻', pay: 130, energy: -15, fun: -5,  social: -3, eduReq: 10 },
+  { name: 'Dog Walking',   icon: '🦮', pay: 40,  energy: -8,  fun: 5,   fitness: 2 },
+  { name: 'Tutoring',      icon: '📖', pay: 80,  energy: -10, fun: -2,  social: 4, eduReq: 5 },
+];
+
+const BUSINESSES = [
+  { type: 'shop',     name: 'Corner Shop',    cost: 5000,  monthlyIncome: 800,  riskPct: 4,  desc: 'Steady neighborhood trade' },
+  { type: 'cafe',     name: 'Cozy Café',      cost: 12000, monthlyIncome: 2000, riskPct: 8,  desc: 'Higher reward, higher risk' },
+  { type: 'online',   name: 'Online Store',   cost: 3000,  monthlyIncome: 500,  riskPct: 3,  desc: 'Low effort, low ceiling' },
+  { type: 'startup',  name: 'Tech Startup',   cost: 30000, monthlyIncome: 6000, riskPct: 15, desc: 'Boom or bust!' },
+];
+
+const LUXURY = {
+  watch:    { name: 'Smart Watch', price: 600,   prestige: 5,  icon: '⌚', desc: 'Health tracking' },
+  phone:    { name: 'Flagship Phone', price: 1200, prestige: 8,  icon: '📱', desc: 'Status symbol' },
+  laptop:   { name: 'Pro Laptop', price: 2500,  prestige: 12, icon: '💻', desc: '+50% freelance pay' },
+  car:      { name: 'Sports Car', price: 35000, prestige: 50, icon: '🏎️', desc: 'Looks awesome' },
+  jewelry:  { name: 'Diamond Ring', price: 5000,  prestige: 25, icon: '💍', desc: 'Required for marriage' },
+  artpiece: { name: 'Art Piece', price: 8000,  prestige: 30, icon: '🖼️', desc: 'Mood +5/day' },
+  yacht:    { name: 'Yacht', price: 80000, prestige: 100, icon: '🛥️', desc: 'You\'ve made it' },
+};
+
+const PETS = {
+  cat:    { name: 'Cat', price: 200, monthlyCost: 80,  funBonus: 8,  socialBonus: 3, icon: '🐱' },
+  dog:    { name: 'Dog', price: 350, monthlyCost: 120, funBonus: 12, socialBonus: 5, fitnessBonus: 1, icon: '🐶' },
+  fish:   { name: 'Fish', price: 50, monthlyCost: 20,  funBonus: 3,  socialBonus: 0, icon: '🐠' },
+  parrot: { name: 'Parrot', price: 500, monthlyCost: 100, funBonus: 10, socialBonus: 8, icon: '🦜' },
+};
+
+const HOBBIES = {
+  fishing:  { name: 'Fishing', icon: '🎣', startCost: 100, sessionCost: 10, funGain: 25, stressDrop: 15 },
+  painting: { name: 'Painting', icon: '🎨', startCost: 150, sessionCost: 15, funGain: 20, stressDrop: 20, money: 30 },
+  music:    { name: 'Music', icon: '🎸', startCost: 300, sessionCost: 5,  funGain: 30, stressDrop: 12, social: 5 },
+  sports:   { name: 'Sports', icon: '⚽', startCost: 80,  sessionCost: 5,  funGain: 18, stressDrop: 18, fitness: 5 },
+  cooking:  { name: 'Cooking', icon: '👨‍🍳', startCost: 200, sessionCost: 20, funGain: 15, stressDrop: 10, hunger: 30 },
+};
+
+const STOCKS = [
+  { sym: 'TECH', name: 'TechCorp', price: 100, history: [100], vol: 0.04 },
+  { sym: 'FOOD', name: 'FoodCo',   price: 50,  history: [50],  vol: 0.02 },
+  { sym: 'AUTO', name: 'AutoMakr', price: 75,  history: [75],  vol: 0.03 },
+  { sym: 'GOLD', name: 'GoldMine', price: 200, history: [200], vol: 0.015 },
+  { sym: 'CRYP', name: 'CrypCoin', price: 30,  history: [30],  vol: 0.10 },
+];
+
+const SEASONS = ['Winter', 'Spring', 'Summer', 'Fall'];
+const WEATHER = {
+  Spring: ['Sunny', 'Cloudy', 'Rainy', 'Sunny'],
+  Summer: ['Sunny', 'Sunny', 'Hot', 'Stormy'],
+  Fall:   ['Cloudy', 'Rainy', 'Windy', 'Sunny'],
+  Winter: ['Snowy', 'Cold', 'Cloudy', 'Snowy'],
+};
+const WEATHER_ICON = {
+  Sunny: '☀️', Cloudy: '☁️', Rainy: '🌧️', Hot: '🥵',
+  Stormy: '⛈️', Windy: '🌬️', Snowy: '❄️', Cold: '🥶'
+};
+
+const HOLIDAYS = {
+  '1-1':  'New Year',
+  '2-14': 'Valentines',
+  '7-4':  'Independence Day',
+  '10-31':'Halloween',
+  '12-25':'Christmas',
+};
+
+// =============================================================
+// MAP
+// =============================================================
+function buildMap() {
+  const m = [];
+  for (let r = 0; r < ROWS; r++) m.push(new Array(COLS).fill(T.GRASS));
+  // House
+  for (let r = 2; r <= 14; r++) for (let c = 1; c <= 12; c++)
+    m[r][c] = (r === 2 || r === 14 || c === 1 || c === 12) ? T.WALL : T.FLOOR;
+  m[14][6] = T.DOOR;
+  // Office
+  for (let r = 4; r <= 10; r++) for (let c = 18; c <= 23; c++)
+    m[r][c] = (r === 4 || r === 10 || c === 18 || c === 23) ? T.WALL : T.FLOOR;
+  m[10][20] = T.DOOR;
+  m[6][20] = T.WORK; m[6][21] = T.WORK; m[7][20] = T.WORK; m[7][21] = T.WORK;
+  // Path
+  const pathTiles = [[6,15],[6,16],[7,16],[8,16],[9,16],[10,16],[11,16],[12,16],[13,16],[14,16],[15,16],[16,16],[17,16],[18,16],[19,16],[20,16],[20,15],[20,14],[20,13],[20,12],[20,11]];
+  for (const [c,r] of pathTiles) if (m[r] && m[r][c] === T.GRASS) m[r][c] = T.PATH;
+  return m;
+}
+
+// =============================================================
+// STATE
+// =============================================================
+const state = {
+  map: buildMap(),
+  sim: {
+    name: 'Alex', x: 6 * TILE + TILE/2, y: 13 * TILE + TILE/2,
+    speed: 115, pathTiles: [], facing: 0, bob: 0,
+    needs: { hunger: 80, energy: 80, social: 70, fun: 70, hygiene: 80 },
+    money: 200, action: null, pendingAction: null,
+  },
+  npcs: [],
+  furniture: [
+    { id: 'b1', type: 'bed', col: 3, row: 4 },
+    { id: 'b2', type: 'fridge', col: 11, row: 4 },
+    { id: 'b3', type: 'toilet', col: 11, row: 12 },
+  ],
+  relationships: {},
+  // life
+  age: 13,
+  lifeStage: 'teen',
+  personality: 'Friendly',
+  talent: 'Smart',
+  // career
+  job: 1, // index in JOBS
+  education: 0,
+  workSkill: 0,
+  business: null,
+  // family
+  partner: null, // { name, love, married, marriedDays }
+  kids: [],
+  relatives: [
+    { name: 'Mom', closeness: 70 },
+    { name: 'Dad', closeness: 60 },
+    { name: 'Sis', closeness: 50 },
+  ],
+  // finance
+  bank: 0,
+  loans: [], // [{ amount, monthly, remaining, type }]
+  insurance: { health: false, life: false },
+  portfolio: {}, // { TECH: shares, ... }
+  costBasis: {},
+  // body
+  weight: 65,
+  fitness: 50,
+  // mood
+  mood: 70, stress: 30, mentalHealth: 75,
+  // luxury
+  luxuries: [], prestige: 0,
+  // pets
+  pets: [],
+  // hobbies
+  hobbies: {}, // { fishing: { level, owned } }
+  // morality
+  morality: 50,
+  // time
+  date: { year: 1, month: 3, day: 1 }, // start in Spring (March)
+  gameSeconds: 0,
+  // weather
+  season: 'Spring', weather: 'Sunny', holiday: null,
+  // settings
+  speed: 1, paused: false,
+  difficulty: 'normal',
+  // log
+  log: [],
+  // ui
+  mode: 'normal', placingType: null, movingItem: null, hoverTile: null,
+  workSalary: 200, workCycleSec: 25,
+  lastTime: performance.now(),
+  // last bills tick
+  lastBillMonth: 3,
+  lastEventTime: 0,
+  charCreated: false,
+  // particles for weather
+  particles: [],
+};
+
+for (const npc of NPC_DATA) {
+  state.npcs.push({
+    name: npc.name, color: npc.color, hairColor: npc.hairColor,
+    x: npc.startC * TILE + TILE/2, y: npc.startR * TILE + TILE/2,
+    speed: 50, pathTiles: [], facing: 0, bob: Math.random() * Math.PI,
+    wanderCooldown: 1 + Math.random() * 3, chatCooldown: 0,
+  });
+  state.relationships[npc.name] = 0;
+}
+
+// =============================================================
+// HELPERS
+// =============================================================
+const REAL_SEC_PER_DAY = 3; // 1 game day every 3 real seconds at 1× speed
+
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+function tileAt(c, r) { return (c < 0 || c >= COLS || r < 0 || r >= ROWS) ? null : state.map[r][c]; }
+function isInsideHouse(c, r) { return c >= 2 && c <= 11 && r >= 3 && r <= 13; }
+function isWalkable(c, r) {
+  const t = tileAt(c, r);
+  if (t === null || t === T.WALL) return false;
+  for (const f of state.furniture) if (f.col === c && f.row === r) return false;
+  return true;
+}
+function pixelToTile(px, py) { return { c: Math.floor(px / TILE), r: Math.floor(py / TILE) }; }
+function tileCenter(c, r) { return { x: c * TILE + TILE/2, y: r * TILE + TILE/2 }; }
+function neighbors(c, r) { return [[c+1,r],[c-1,r],[c,r+1],[c,r-1]]; }
+
+function getStageInfo() {
+  if (state.age < 20) return { name: 'Teen', color: '#10b981' };
+  if (state.age < 40) return { name: 'Young', color: '#3b82f6' };
+  if (state.age < 60) return { name: 'Middle', color: '#f59e0b' };
+  return { name: 'Old', color: '#6b7280' };
+}
+
+function multiplier(effect) {
+  // effects: salary, social, study, love, fun, fitness, hobby, luck
+  let m = 1;
+  const p = state.personality;
+  if (p === 'Friendly' && effect === 'social') m *= 1.3;
+  if (p === 'Hardworking' && effect === 'salary') m *= 1.25;
+  if (p === 'Studious' && effect === 'study') m *= 1.3;
+  if (p === 'Charming' && effect === 'love') m *= 1.25;
+  if (p === 'Adventurous' && effect === 'fun') m *= 1.25;
+  if (p === 'Frugal' && effect === 'bills') m *= 0.8;
+  if (p === 'Frugal' && effect === 'interest') m *= 1.2;
+  const t = state.talent;
+  if (t === 'Smart' && effect === 'study') m *= 1.3;
+  if (t === 'Strong' && effect === 'energy_decay') m *= 0.75;
+  if (t === 'Lucky' && effect === 'luck') m *= 1.25;
+  if (t === 'Artistic' && effect === 'hobby') m *= 1.3;
+  if (t === 'Athletic' && effect === 'fitness') m *= 1.3;
+  if (t === 'Charismatic' && (effect === 'love' || effect === 'social')) m *= 1.25;
+  return m;
+}
+
+// =============================================================
+// PATHFINDING (A*)
+// =============================================================
+function findPath(sc, sr, ec, er) {
+  if (!isWalkable(ec, er)) {
+    const adj = neighbors(ec, er).filter(([c,r]) => isWalkable(c,r));
+    if (!adj.length) return null;
+    let best = adj[0], bestD = Infinity;
+    for (const [c,r] of adj) {
+      const d = Math.abs(c-sc) + Math.abs(r-sr);
+      if (d < bestD) { bestD = d; best = [c,r]; }
+    }
+    ec = best[0]; er = best[1];
+  }
+  const key = (c,r) => c+','+r;
+  const start = { c:sc, r:sr, g:0, h:0, f:0, parent:null };
+  const open = [start], openMap = new Map();
+  openMap.set(key(sc,sr), start);
+  const closed = new Set();
+  let iter = 0;
+  while (open.length && iter++ < 3000) {
+    let bi = 0;
+    for (let i = 1; i < open.length; i++) if (open[i].f < open[bi].f) bi = i;
+    const cur = open.splice(bi, 1)[0];
+    openMap.delete(key(cur.c, cur.r));
+    closed.add(key(cur.c, cur.r));
+    if (cur.c === ec && cur.r === er) {
+      const path = []; let n = cur;
+      while (n) { path.unshift({c:n.c, r:n.r}); n = n.parent; }
+      return path;
+    }
+    for (const [nc, nr] of neighbors(cur.c, cur.r)) {
+      if (!isWalkable(nc, nr)) continue;
+      const k = key(nc, nr);
+      if (closed.has(k)) continue;
+      const g = cur.g + 1, h = Math.abs(nc-ec) + Math.abs(nr-er);
+      const ex = openMap.get(k);
+      if (ex && ex.g <= g) continue;
+      if (ex) { ex.g = g; ex.f = g+h; ex.parent = cur; }
+      else {
+        const node = { c:nc, r:nr, g, h, f:g+h, parent:cur };
+        open.push(node); openMap.set(k, node);
+      }
+    }
+  }
+  return null;
+}
+
+function setSimDestination(tc, tr, cb = null) {
+  const cur = pixelToTile(state.sim.x, state.sim.y);
+  const path = findPath(cur.c, cur.r, tc, tr);
+  if (!path) { showStatus("Can't reach there from here."); return false; }
+  if (path.length < 2) { if (cb) cb(); return true; }
+  state.sim.pathTiles = path.slice(1);
+  state.sim.pendingAction = cb ? { fn: cb } : null;
+  return true;
+}
+
+function moveAlongPath(actor, dt) {
+  if (!actor.pathTiles || !actor.pathTiles.length) return false;
+  const next = actor.pathTiles[0];
+  const tgt = tileCenter(next.c, next.r);
+  const dx = tgt.x - actor.x, dy = tgt.y - actor.y;
+  const dist = Math.hypot(dx, dy);
+  const mv = actor.speed * dt;
+  if (dist <= mv) {
+    actor.x = tgt.x; actor.y = tgt.y;
+    actor.pathTiles.shift();
+    if (!actor.pathTiles.length) return true;
+  } else {
+    actor.x += (dx/dist) * mv; actor.y += (dy/dist) * mv;
+    actor.facing = Math.atan2(dy, dx);
+  }
+  actor.bob += dt * 9;
+  return false;
+}
+
+// =============================================================
+// ACTIONS
+// =============================================================
+function startUseAction(furn) {
+  const def = FURNITURE[furn.type];
+  state.sim.action = {
+    type: 'use', target: furn,
+    timeLeft: def.useTime, totalTime: def.useTime, label: def.label,
+  };
+  showStatus(`${def.label}…`);
+}
+function startWorkAction() {
+  const job = JOBS[state.job];
+  const salary = Math.floor(job.salary * multiplier('salary'));
+  state.sim.action = {
+    type: 'work', timeLeft: state.workCycleSec, totalTime: state.workCycleSec, label: 'Working', salary,
+  };
+  showStatus(`Clocked in as ${job.title}!`);
+}
+function startChatAction(npc) {
+  state.sim.action = {
+    type: 'chat', target: npc, timeLeft: 3, totalTime: 3, label: 'Chatting',
+  };
+  showStatus(`Chatting with ${npc.name}…`);
+}
+
+function tickAction(dt) {
+  const a = state.sim.action;
+  if (!a) return;
+  a.timeLeft -= dt;
+  if (a.type === 'use') {
+    const def = FURNITURE[a.target.type];
+    for (const k in def.restore) {
+      const total = def.restore[k];
+      const rate = total / def.useTime;
+      state.sim.needs[k] = clamp(state.sim.needs[k] + rate * dt, 0, 100);
+    }
+    if (def.fitness) state.fitness = clamp(state.fitness + (def.fitness/def.useTime) * dt, 0, 100);
+    if (def.weight) state.weight = clamp(state.weight + (def.weight/def.useTime) * dt, 35, 150);
+    if (def.study) state.education += (def.study/def.useTime) * dt * multiplier('study');
+  } else if (a.type === 'work') {
+    state.sim.needs.energy = Math.max(0, state.sim.needs.energy - 4 * dt);
+    state.sim.needs.hunger = Math.max(0, state.sim.needs.hunger - 3 * dt);
+    state.sim.needs.fun = Math.max(0, state.sim.needs.fun - 2 * dt);
+    state.stress = clamp(state.stress + 2 * dt, 0, 100);
+    state.workSkill += 0.04 * dt;
+  } else if (a.type === 'chat') {
+    state.sim.needs.social = clamp(state.sim.needs.social + 20 * dt, 0, 100);
+    state.sim.needs.fun = clamp(state.sim.needs.fun + 5 * dt, 0, 100);
+  }
+  if (a.timeLeft <= 0) {
+    if (a.type === 'work') {
+      state.sim.money += a.salary;
+      logEvent(`💼 Earned $${a.salary} from work`);
+      pushNotification(`💰 Payday! +$${a.salary}`, 'money');
+    } else if (a.type === 'chat') {
+      const name = a.target.name;
+      const gain = Math.floor(15 * multiplier('social'));
+      state.relationships[name] = clamp(state.relationships[name] + gain, 0, 100);
+      pushNotification(`❤️ ${name} likes you more (+${gain})`, 'heart');
+      a.target.chatCooldown = 8;
+    } else if (a.type === 'use') {
+      pushNotification(`✨ ${FURNITURE[a.target.type].name} used`);
+    }
+    state.sim.action = null; hideStatus();
+  }
+}
+
+function cancelAction() { state.sim.action = null; state.sim.pendingAction = null; hideStatus(); }
+
+// =============================================================
+// NEEDS DECAY
+// =============================================================
+const lastWarn = {};
+function tickNeeds(dt) {
+  const decay = { hunger: 0.85, energy: 0.5 * multiplier('energy_decay'), social: 0.65, fun: 0.75, hygiene: 0.55 };
+  for (const k in decay) state.sim.needs[k] = Math.max(0, state.sim.needs[k] - decay[k] * dt);
+  // Mood derived from needs
+  const avg = (state.sim.needs.hunger + state.sim.needs.energy + state.sim.needs.social + state.sim.needs.fun + state.sim.needs.hygiene) / 5;
+  state.mood = clamp(state.mood + (avg - state.mood) * 0.05 * dt, 0, 100);
+  // Stress reduction over time when relaxed
+  if (!state.sim.action || state.sim.action.type !== 'work') {
+    state.stress = Math.max(0, state.stress - 0.3 * dt);
+  }
+  state.mentalHealth = clamp(100 - state.stress * 0.5 + state.mood * 0.2, 0, 100);
+  // Luxury mood bonus
+  if (state.luxuries.includes('artpiece')) state.mood = clamp(state.mood + 0.05 * dt, 0, 100);
+  // Weight from low fitness or overeating tendencies
+  if (state.sim.needs.hunger > 90) state.weight = clamp(state.weight + 0.005 * dt, 35, 150);
+  // Pet bonuses
+  for (const p of state.pets) {
+    state.sim.needs.fun = clamp(state.sim.needs.fun + (PETS[p.type].funBonus * 0.005) * dt, 0, 100);
+    state.sim.needs.social = clamp(state.sim.needs.social + (PETS[p.type].socialBonus * 0.005) * dt, 0, 100);
+  }
+  // Warnings
+  for (const k in state.sim.needs) {
+    if (state.sim.needs[k] < 18 && (!lastWarn[k] || state.gameSeconds - lastWarn[k] > 25)) {
+      pushNotification(`⚠️ Your ${k} is critically low!`, 'warning');
+      lastWarn[k] = state.gameSeconds;
+    }
+  }
+}
+
+// =============================================================
+// NPC AI
+// =============================================================
+function tickNpcs(dt) {
+  for (const npc of state.npcs) {
+    if (npc.chatCooldown > 0) npc.chatCooldown -= dt;
+    if (state.sim.action && state.sim.action.type === 'chat' && state.sim.action.target === npc) {
+      npc.facing = Math.atan2(state.sim.y - npc.y, state.sim.x - npc.x);
+      npc.bob += dt * 5;
+      continue;
+    }
+    if (npc.pathTiles && npc.pathTiles.length) moveAlongPath(npc, dt);
+    else {
+      npc.wanderCooldown -= dt;
+      if (npc.wanderCooldown <= 0) {
+        const cur = pixelToTile(npc.x, npc.y);
+        for (let attempt = 0; attempt < 10; attempt++) {
+          const dc = Math.floor(Math.random() * 9) - 4, dr = Math.floor(Math.random() * 9) - 4;
+          const tc = cur.c + dc, tr = cur.r + dr;
+          if (isInsideHouse(tc, tr)) continue;
+          if (!isWalkable(tc, tr)) continue;
+          if (tileAt(tc, tr) === T.WORK) continue;
+          const path = findPath(cur.c, cur.r, tc, tr);
+          if (path && path.length > 1 && path.length < 14) {
+            npc.pathTiles = path.slice(1); break;
+          }
+        }
+        npc.wanderCooldown = 2 + Math.random() * 4;
+      }
+    }
+  }
+}
+
+// =============================================================
+// TIME / CALENDAR
+// =============================================================
+function tickTime(dt) {
+  if (state.paused) return;
+  const eff = dt * state.speed;
+  state.gameSeconds += eff;
+  // Days
+  const oldDay = state.date.day, oldMonth = state.date.month, oldYear = state.date.year;
+  // Convert seconds to days
+  const totalDaysFloat = state.gameSeconds / REAL_SEC_PER_DAY;
+  const totalDays = Math.floor(totalDaysFloat);
+  // Compute calendar from totalDays + initial date offset
+  // Start: Y1, M3, D1 means day index 60 (0-based: y0 + 2*30 + 0 = 60)
+  // We'll keep date as derived: startDay = 60 plus elapsed
+  const startBaseDay = 60;
+  const cur = startBaseDay + totalDays;
+  const yr = Math.floor(cur / 360) + 1;
+  const dayInYear = cur % 360;
+  const mo = Math.floor(dayInYear / 30) + 1;
+  const day = (dayInYear % 30) + 1;
+  state.date.year = yr; state.date.month = mo; state.date.day = day;
+  if (day !== oldDay) onDayPassed();
+  if (mo !== oldMonth) onMonthPassed();
+  if (yr !== oldYear) onYearPassed();
+}
+
+function onDayPassed() {
+  // Update weather + season + holiday
+  const seasonIdx = Math.floor((state.date.month - 1) / 3);
+  state.season = SEASONS[seasonIdx];
+  const wtArr = WEATHER[state.season];
+  state.weather = wtArr[Math.floor(Math.random() * wtArr.length)];
+  const key = state.date.month + '-' + state.date.day;
+  state.holiday = HOLIDAYS[key] || null;
+  if (state.holiday) {
+    pushNotification(`🎉 Today is ${state.holiday}!`);
+    logEvent(`🎉 ${state.holiday}`);
+    if (state.holiday === 'Christmas') { state.sim.money += 200; pushNotification('🎁 Gift from family: +$200', 'money'); }
+    if (state.holiday === 'New Year') { state.sim.needs.fun = clamp(state.sim.needs.fun + 30, 0, 100); }
+    if (state.holiday === 'Valentines' && state.partner) {
+      state.partner.love = clamp(state.partner.love + 10, 0, 100);
+      pushNotification(`💕 ${state.partner.name} loves Valentine's!`, 'heart');
+    }
+  }
+  // Stocks daily move
+  for (const s of STOCKS) {
+    const change = (Math.random() - 0.5) * 2 * s.vol;
+    s.price = Math.max(1, +(s.price * (1 + change)).toFixed(2));
+    s.history.push(s.price);
+    if (s.history.length > 30) s.history.shift();
+  }
+  // Pet care
+  for (const p of state.pets) {
+    p.hunger = Math.max(0, p.hunger - 5);
+    if (p.hunger < 20) pushNotification(`${PETS[p.type].icon} ${p.name} is hungry!`, 'warning');
+  }
+  // Kid age (every game day = 0.1 game-years for kids)
+  for (const k of state.kids) k.age = +(k.age + 1/30).toFixed(2);
+  // Random event chance
+  if (Math.random() < 0.2 && !state.activeEvent) triggerRandomEvent();
+}
+
+function onMonthPassed() {
+  payMonthlyBills();
+  payBusinessIncome();
+  collectInterest();
+  payLoans();
+  payInsurance();
+  paySchoolFees();
+  // Anniversary
+  if (state.partner && state.partner.married) {
+    state.partner.marriedDays = (state.partner.marriedDays || 0) + 30;
+  }
+}
+
+function onYearPassed() {
+  state.age++;
+  const stage = getStageInfo();
+  if (stage.name.toLowerCase() !== state.lifeStage) {
+    state.lifeStage = stage.name.toLowerCase();
+    pushNotification(`🎂 You've entered the ${stage.name} life stage!`);
+    logEvent(`Entered ${stage.name} life stage at age ${state.age}`);
+  } else {
+    pushNotification(`🎂 Happy Birthday! You're now ${state.age}.`);
+    logEvent(`Turned ${state.age}`);
+  }
+  // Life stage effects
+  if (state.age >= 80 && Math.random() < 0.4) {
+    triggerEvent('🌅 Old Age', 'Time has caught up with you. Your journey draws to a close.', [
+      { label: 'Reflect on your life', cb: () => { pushNotification('A life well lived. 💛'); state.paused = true; } },
+    ]);
+  }
+}
+
+function payMonthlyBills() {
+  const billMult = multiplier('bills');
+  let bills = { Water: 30, Electric: 50, Internet: 40, Phone: 30, Property: 100 };
+  if (state.season === 'Winter') bills.Electric += 40;
+  if (state.season === 'Summer') bills.Electric += 25;
+  if (state.luxuries.includes('phone')) bills.Phone += 30;
+  let total = 0;
+  for (const k in bills) { bills[k] = Math.floor(bills[k] * billMult); total += bills[k]; }
+  state.sim.money -= total;
+  logEvent(`🧾 Paid $${total} in monthly bills`);
+  pushNotification(`🧾 Bills: -$${total}`, 'warning');
+  if (state.sim.money < 0) {
+    pushNotification(`💸 You're in debt! Consider a loan or working more.`, 'danger');
+  }
+}
+
+function paySchoolFees() {
+  for (const k of state.kids) {
+    if (k.age >= 5) {
+      state.sim.money -= 300;
+      logEvent(`📚 ${k.name}'s school: -$300`);
+    }
+  }
+}
+
+function payBusinessIncome() {
+  if (!state.business) return;
+  const b = BUSINESSES.find(x => x.type === state.business.type);
+  if (!b) return;
+  // Risk: chance of major loss
+  if (Math.random() * 100 < b.riskPct) {
+    const loss = Math.floor(b.monthlyIncome * (1 + Math.random()));
+    state.sim.money -= loss;
+    pushNotification(`📉 Business setback! -$${loss}`, 'danger');
+    logEvent(`📉 ${b.name} lost $${loss} this month`);
+  } else {
+    const inc = Math.floor(b.monthlyIncome * (0.8 + Math.random() * 0.4));
+    state.sim.money += inc;
+    pushNotification(`📈 ${b.name} profits: +$${inc}`, 'money');
+    logEvent(`📈 ${b.name} earned $${inc}`);
+  }
+}
+
+function collectInterest() {
+  if (state.bank > 0) {
+    const rate = 0.005 * multiplier('interest');
+    const interest = Math.floor(state.bank * rate);
+    if (interest > 0) {
+      state.bank += interest;
+      logEvent(`🏦 Bank interest: +$${interest}`);
+    }
+  }
+}
+
+function payLoans() {
+  let total = 0;
+  state.loans = state.loans.filter(L => {
+    state.sim.money -= L.monthly;
+    L.remaining -= L.monthly;
+    total += L.monthly;
+    if (L.remaining <= 0) {
+      pushNotification(`✅ Loan paid off!`);
+      logEvent(`Loan paid off: ${L.type}`);
+      return false;
+    }
+    return true;
+  });
+  if (total > 0) logEvent(`🏦 Loan payments: -$${total}`);
+}
+
+function payInsurance() {
+  let cost = 0;
+  if (state.insurance.health) cost += 50;
+  if (state.insurance.life) cost += 30;
+  if (cost > 0) {
+    state.sim.money -= cost;
+    logEvent(`🛡️ Insurance: -$${cost}`);
+  }
+}
+
+// =============================================================
+// RANDOM EVENTS
+// =============================================================
+const EVENTS = [
+  () => ({ title: '💰 Lottery Ticket', body: 'You bought a $10 ticket on a whim. Time to scratch it...',
+    choices: [{ label: 'Scratch it!', desc: '', cb: () => {
+      const win = Math.random() < 0.05 * multiplier('luck');
+      if (win) { const amt = 1000 + Math.floor(Math.random() * 5000); state.sim.money += amt; pushNotification(`🎰 JACKPOT! +$${amt}`, 'money'); logEvent(`Won $${amt} lottery`); }
+      else { state.sim.money -= 10; pushNotification('No luck this time. -$10', 'warning'); }
+    } }],
+  }),
+  () => ({ title: '👨‍👩‍👧 Relative Asks for Money', body: 'Aunt Jenny calls — she needs $500 for car repairs. What do you say?',
+    choices: [
+      { label: '💵 Lend $500', desc: 'They might pay back...', cb: () => {
+        if (state.sim.money < 500) { pushNotification("You're broke yourself!"); return; }
+        state.sim.money -= 500;
+        const repay = Math.random() < 0.6 * multiplier('luck');
+        setTimeout(() => {
+          if (repay) { state.sim.money += 500; pushNotification('Aunt Jenny paid you back! +$500', 'money'); }
+          else { pushNotification('Aunt Jenny ghosted you. 😬', 'warning'); }
+        }, 30000);
+        for (const r of state.relatives) if (r.name === 'Mom' || r.name === 'Dad') r.closeness = clamp(r.closeness + 5, 0, 100);
+      }},
+      { label: '🚫 Politely decline', desc: 'Save your cash', cb: () => {
+        for (const r of state.relatives) r.closeness = clamp(r.closeness - 8, 0, 100);
+        pushNotification('Family bond -8');
+      }},
+    ],
+  }),
+  () => ({ title: '🤧 Caught a Cold', body: 'You\'re feeling under the weather. Treatment options:',
+    choices: [
+      { label: '🏥 See doctor ($200)', desc: state.insurance.health ? 'Free with insurance' : '', cb: () => {
+        const cost = state.insurance.health ? 0 : 200;
+        state.sim.money -= cost;
+        state.sim.needs.energy = clamp(state.sim.needs.energy + 30, 0, 100);
+        pushNotification(cost ? `Treated. -$${cost}` : 'Insurance covered it!');
+      }},
+      { label: '🛌 Tough it out', desc: '-30 energy now', cb: () => {
+        state.sim.needs.energy = Math.max(0, state.sim.needs.energy - 30);
+        state.stress = clamp(state.stress + 10, 0, 100);
+      }},
+    ],
+  }),
+  () => ({ title: '🎁 Found Cash on Street', body: `You spot a wallet on the sidewalk with $${50 + Math.floor(Math.random()*100)} inside.`,
+    choices: [
+      { label: '✋ Take it', desc: '-5 morality', cb: () => { const a = 50 + Math.floor(Math.random()*100); state.sim.money += a; state.morality = clamp(state.morality - 5, 0, 100); pushNotification(`+$${a}`, 'money'); }},
+      { label: '👮 Turn it in', desc: '+5 morality', cb: () => { state.morality = clamp(state.morality + 5, 0, 100); pushNotification('Good deed done!'); }},
+    ],
+  }),
+  () => ({ title: '🎰 Casino Invite', body: 'A friend invites you to gamble downtown. High risk, high reward.',
+    choices: [
+      { label: '🎲 Gamble $500', desc: 'Risky', cb: () => {
+        if (state.sim.money < 500) { pushNotification('Not enough cash'); return; }
+        state.sim.money -= 500;
+        const win = Math.random() < 0.4 * multiplier('luck');
+        if (win) { const w = 1500; state.sim.money += w; pushNotification(`🎰 Won $${w}!`, 'money'); }
+        else { pushNotification('Lost your bet.', 'warning'); state.morality = clamp(state.morality - 3, 0, 100); }
+      }},
+      { label: '🚪 Pass', desc: 'Safer choice', cb: () => { pushNotification('Smart move.'); }},
+    ],
+  }),
+  () => ({ title: '📉 Layoffs at Work', body: 'There are budget cuts. Your manager pulls you aside...',
+    choices: [
+      { label: '🙏 Plead your case', desc: '', cb: () => {
+        if (Math.random() < 0.5 + state.workSkill * 0.005) { pushNotification('You kept your job!'); }
+        else { state.job = 0; pushNotification('You were laid off. 😢', 'danger'); logEvent('Lost job to layoffs'); }
+      }},
+    ],
+  }),
+  () => ({ title: '🌩️ Storm Damage', body: 'A heavy storm damages your roof. Repairs needed.',
+    choices: [
+      { label: 'Repair ($600)', cb: () => { state.sim.money -= 600; pushNotification('Roof repaired'); } },
+      { label: 'Ignore it', cb: () => { state.stress = clamp(state.stress + 15, 0, 100); pushNotification('Stressful week...', 'warning'); } },
+    ],
+  }),
+  () => ({ title: '🎓 Scholarship Offer', body: 'A study program offers free education!',
+    choices: [
+      { label: 'Accept', cb: () => { state.education += 10; pushNotification('+10 Education'); } },
+      { label: 'Decline', cb: () => {} },
+    ],
+  }),
+  () => ({ title: '👶 Surprise Babysitting', body: `Your sister asks you to watch her toddler for the day.`,
+    choices: [
+      { label: 'Sure! +$80', cb: () => { state.sim.money += 80; for (const r of state.relatives) if (r.name === 'Sis') r.closeness = clamp(r.closeness + 8, 0, 100); state.stress = clamp(state.stress + 8, 0, 100); } },
+      { label: 'Sorry, busy', cb: () => { for (const r of state.relatives) if (r.name === 'Sis') r.closeness = clamp(r.closeness - 5, 0, 100); } },
+    ],
+  }),
+  () => ({ title: '💔 Relationship Drama', body: state.partner ? `${state.partner.name} caught you hiding something silly.` : `An old friend is upset about a misunderstanding.`,
+    choices: [
+      { label: 'Apologize sincerely', cb: () => {
+        if (state.partner) state.partner.love = clamp(state.partner.love + 5, 0, 100);
+        pushNotification('Apology accepted.');
+      }},
+      { label: 'Defensive response', cb: () => {
+        if (state.partner) state.partner.love = clamp(state.partner.love - 15, 0, 100);
+        state.stress = clamp(state.stress + 10, 0, 100);
+        pushNotification('They\'re upset...', 'warning');
+      }},
+    ],
+  }),
+];
+
+function triggerRandomEvent() {
+  const ev = EVENTS[Math.floor(Math.random() * EVENTS.length)]();
+  triggerEvent(ev.title, ev.body, ev.choices);
+}
+
+function triggerEvent(title, body, choices) {
+  state.activeEvent = true;
+  document.getElementById('event-title').textContent = title;
+  document.getElementById('event-body').innerHTML = `<p style="line-height:1.6;">${body}</p>`;
+  const cont = document.getElementById('event-choices');
+  cont.innerHTML = '';
+  for (const c of choices) {
+    const btn = document.createElement('button');
+    btn.className = 'event-choice';
+    btn.innerHTML = `<strong>${c.label}</strong>${c.desc ? `<div class="ec-desc">${c.desc}</div>` : ''}`;
+    btn.onclick = () => {
+      c.cb && c.cb();
+      logEvent(`Event: ${title} → ${c.label}`);
+      document.getElementById('event-modal').classList.add('hidden');
+      state.activeEvent = false;
+    };
+    cont.appendChild(btn);
+  }
+  document.getElementById('event-modal').classList.remove('hidden');
+}
+
+// =============================================================
+// CLICK HANDLERS
+// =============================================================
+function findUseSpot(furn) {
+  const inside = isInsideHouse(furn.col, furn.row);
+  for (const [c, r] of neighbors(furn.col, furn.row)) {
+    if (!isWalkable(c, r)) continue;
+    if (inside && !isInsideHouse(c, r)) continue;
+    return { c, r };
+  }
+  for (const [c, r] of neighbors(furn.col, furn.row)) if (isWalkable(c, r)) return { c, r };
+  return null;
+}
+function furnitureAt(c, r) { for (const f of state.furniture) if (f.col === c && f.row === r) return f; return null; }
+function npcAtPixel(px, py) {
+  for (const npc of state.npcs) if (Math.hypot(px-npc.x, py-npc.y) < 16) return npc;
+  return null;
+}
+function walkToFurnitureAndUse(furn) {
+  cancelAction();
+  const spot = findUseSpot(furn);
+  if (!spot) { showStatus("Can't reach this!"); return; }
+  setSimDestination(spot.c, spot.r, () => startUseAction(furn));
+}
+function walkToNpcAndChat(npc) {
+  cancelAction();
+  const t = pixelToTile(npc.x, npc.y);
+  let spot = null;
+  for (const [nc, nr] of neighbors(t.c, t.r)) if (isWalkable(nc, nr)) { spot = { c:nc, r:nr }; break; }
+  if (!spot) spot = t;
+  setSimDestination(spot.c, spot.r, () => startChatAction(npc));
+}
+function walkToWork(c, r) {
+  cancelAction();
+  setSimDestination(c, r, () => startWorkAction());
+}
+
+canvas.addEventListener('mousemove', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const sx = canvas.width/rect.width, sy = canvas.height/rect.height;
+  const px = (e.clientX - rect.left) * sx, py = (e.clientY - rect.top) * sy;
+  state.hoverTile = pixelToTile(px, py);
+});
+canvas.addEventListener('mouseleave', () => { state.hoverTile = null; });
+canvas.addEventListener('click', (e) => {
+  if (state.activeEvent) return;
+  const rect = canvas.getBoundingClientRect();
+  const visX = e.clientX - rect.left, visY = e.clientY - rect.top;
+  const sx = canvas.width/rect.width, sy = canvas.height/rect.height;
+  const px = visX * sx, py = visY * sy;
+  const { c, r } = pixelToTile(px, py);
+  if (state.mode === 'placing') { handlePlace(c, r); return; }
+  if (state.mode === 'editing') {
+    const f = furnitureAt(c, r);
+    if (f) showFurnitureMenu(f, visX, visY);
+    else hideFloatingMenu();
+    return;
+  }
+  hideFloatingMenu();
+  const npc = npcAtPixel(px, py);
+  if (npc) {
+    if (npc.chatCooldown > 0) { showStatus(`${npc.name} is busy.`); return; }
+    walkToNpcAndChat(npc); return;
+  }
+  const f = furnitureAt(c, r);
+  if (f) { walkToFurnitureAndUse(f); return; }
+  if (tileAt(c, r) === T.WORK) { walkToWork(c, r); return; }
+  cancelAction();
+  setSimDestination(c, r);
+});
+canvas.addEventListener('contextmenu', (e) => { e.preventDefault(); cancelPlacement(); });
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') { cancelPlacement(); hideFloatingMenu(); closeModal(); }
+});
+
+// =============================================================
+// PLACEMENT
+// =============================================================
+function handlePlace(c, r) {
+  if (!isInsideHouse(c, r) || tileAt(c, r) !== T.FLOOR) { showStatus("Furniture goes inside the house."); return; }
+  if (furnitureAt(c, r)) { showStatus("Spot taken."); return; }
+  if (state.movingItem) {
+    state.movingItem.col = c; state.movingItem.row = r;
+    state.furniture.push(state.movingItem);
+    state.movingItem = null; state.mode = 'normal'; state.placingType = null;
+    pushNotification('✨ Moved!'); updateModeBanner(); return;
+  }
+  const def = FURNITURE[state.placingType];
+  if (!def) return;
+  if (state.sim.money < def.price) { showStatus("Can't afford that."); return; }
+  state.sim.money -= def.price;
+  state.furniture.push({ id: 'f'+Date.now()+Math.floor(Math.random()*1000), type: state.placingType, col: c, row: r });
+  pushNotification(`🛍️ Bought a ${def.name.toLowerCase()}!`);
+  state.placingType = null; state.mode = 'normal';
+  updateModeBanner();
+}
+function cancelPlacement() {
+  if (state.mode !== 'placing') return;
+  if (state.movingItem) { state.furniture.push(state.movingItem); state.movingItem = null; }
+  state.placingType = null; state.mode = 'normal';
+  updateModeBanner(); showStatus('Cancelled.');
+}
+
+// =============================================================
+// FURNITURE SHOP (existing furniture)
+// =============================================================
+function openShop() {
+  if (state.mode === 'placing') return;
+  let html = '<div class="shop-grid">';
+  for (const key in FURNITURE) {
+    const f = FURNITURE[key];
+    const can = state.sim.money >= f.price;
+    html += `<div class="shop-item${can?'':' locked'}" data-key="${key}">
+      <div class="shop-item-icon" style="background:${f.color}33;">${f.icon}</div>
+      <div class="shop-item-name">${f.name}</div>
+      <div class="shop-item-price">$${f.price}</div>
+      <div class="shop-item-desc">${describeRestore(f.restore)}</div>
+    </div>`;
+  }
+  html += '</div>';
+  openModal('🛒 Furniture Shop', html, () => {
+    document.querySelectorAll('#modal-body .shop-item').forEach(el => {
+      el.onclick = () => {
+        const key = el.dataset.key;
+        if (state.sim.money < FURNITURE[key].price) { showStatus("Can't afford."); return; }
+        state.placingType = key; state.mode = 'placing';
+        closeModal();
+        showStatus(`Click in your house to place the ${FURNITURE[key].name.toLowerCase()}.`);
+        updateModeBanner();
+      };
+    });
+  });
+}
+function describeRestore(r) {
+  return Object.entries(r).map(([k,v]) => `${v>0?'+':''}${v} ${k}`).join(', ');
+}
+
+function showFurnitureMenu(furn, visX, visY) {
+  const menu = document.getElementById('floating-menu');
+  const def = FURNITURE[furn.type];
+  const refund = Math.floor(def.price / 2);
+  menu.innerHTML = `
+    <button class="menu-btn use" data-act="move">↔ Move</button>
+    <button class="menu-btn delete" data-act="sell">Sell ($${refund})</button>
+    <button class="menu-btn" data-act="cancel">Cancel</button>`;
+  menu.style.left = (canvas.offsetLeft + visX) + 'px';
+  menu.style.top = (canvas.offsetTop + visY - 44) + 'px';
+  menu.classList.remove('hidden');
+  menu.querySelectorAll('button').forEach(btn => {
+    btn.onclick = (ev) => {
+      ev.stopPropagation();
+      hideFloatingMenu();
+      const act = btn.dataset.act;
+      if (act === 'move') {
+        const i = state.furniture.indexOf(furn);
+        if (i >= 0) state.furniture.splice(i, 1);
+        state.movingItem = furn; state.placingType = furn.type; state.mode = 'placing';
+        showStatus("Click a new spot."); updateModeBanner();
+      } else if (act === 'sell') {
+        state.sim.money += refund;
+        const i = state.furniture.indexOf(furn);
+        if (i >= 0) state.furniture.splice(i, 1);
+        pushNotification(`💵 Sold ${def.name} for $${refund}`, 'money');
+      }
+    };
+  });
+}
+function hideFloatingMenu() { document.getElementById('floating-menu').classList.add('hidden'); }
+
+// =============================================================
+// CAREER MODAL
+// =============================================================
+function openCareer() {
+  const job = JOBS[state.job];
+  let html = `<div class="section-block">
+    <h3>Current Job: ${job.title}</h3>
+    <div class="info-row"><span>Salary per cycle</span><strong>$${Math.floor(job.salary * multiplier('salary'))}</strong></div>
+    <div class="info-row"><span>Education</span><strong>${state.education.toFixed(1)}</strong></div>
+    <div class="info-row"><span>Work Skill</span><strong>${state.workSkill.toFixed(1)}</strong></div>
+  </div>`;
+  // Promotion
+  if (state.job < JOBS.length - 1) {
+    const next = JOBS[state.job + 1];
+    const ok = state.education >= next.eduReq && state.workSkill >= next.skillReq && state.age >= next.ageReq;
+    html += `<div class="section-block">
+      <h3>Next Promotion: ${next.title}</h3>
+      <div class="info-row"><span>Salary</span><strong>$${next.salary}</strong></div>
+      <div class="info-row"><span>Education req.</span><strong>${state.education.toFixed(1)} / ${next.eduReq}</strong></div>
+      <div class="info-row"><span>Skill req.</span><strong>${state.workSkill.toFixed(1)} / ${next.skillReq}</strong></div>
+      <div class="info-row"><span>Age req.</span><strong>${state.age} / ${next.ageReq}</strong></div>
+      <button class="btn ${ok?'success':''}" id="btn-promote" ${ok?'':'disabled'}>${ok?'✨ Apply for promotion':'Requirements not met'}</button>
+    </div>`;
+  } else {
+    html += `<div class="section-block"><p>You're at the top of your career! 👑</p></div>`;
+  }
+  // Quit job button
+  if (state.job > 0) {
+    html += `<button class="btn warn" id="btn-quit">Quit Job</button>`;
+  } else {
+    html += `<button class="btn primary" id="btn-rehire">Get a Job (Intern)</button>`;
+  }
+  // Business
+  html += `<h3 style="margin: 14px 0 8px;">Start a Business</h3>`;
+  if (state.business) {
+    const b = BUSINESSES.find(x => x.type === state.business.type);
+    html += `<div class="section-block">
+      <h3>${b.name}</h3>
+      <div class="info-row"><span>Avg monthly income</span><strong>$${b.monthlyIncome}</strong></div>
+      <div class="info-row"><span>Risk per month</span><strong>${b.riskPct}%</strong></div>
+      <button class="btn danger" id="btn-close-biz">Close Business</button>
+    </div>`;
+  } else {
+    html += '<div class="shop-grid">';
+    for (const b of BUSINESSES) {
+      const can = state.sim.money >= b.cost;
+      html += `<div class="shop-item${can?'':' locked'}" data-biz="${b.type}">
+        <div class="shop-item-name">${b.name}</div>
+        <div class="shop-item-price">$${b.cost}</div>
+        <div class="shop-item-desc">${b.desc}<br>~$${b.monthlyIncome}/mo · ${b.riskPct}% risk</div>
+      </div>`;
+    }
+    html += '</div>';
+  }
+  openModal('📈 Career & Business', html, () => {
+    const promo = document.getElementById('btn-promote');
+    if (promo) promo.onclick = () => {
+      state.job++;
+      state.workSalary = JOBS[state.job].salary;
+      pushNotification(`🎉 Promoted to ${JOBS[state.job].title}!`, 'money');
+      logEvent(`Promoted to ${JOBS[state.job].title}`);
+      openCareer();
+    };
+    const quit = document.getElementById('btn-quit');
+    if (quit) quit.onclick = () => { state.job = 0; pushNotification('You quit your job.'); openCareer(); };
+    const rehire = document.getElementById('btn-rehire');
+    if (rehire) rehire.onclick = () => { state.job = 1; pushNotification('Rehired as Intern.'); openCareer(); };
+    const closeBiz = document.getElementById('btn-close-biz');
+    if (closeBiz) closeBiz.onclick = () => { state.business = null; pushNotification('Business closed.'); openCareer(); };
+    document.querySelectorAll('#modal-body [data-biz]').forEach(el => {
+      el.onclick = () => {
+        const t = el.dataset.biz;
+        const b = BUSINESSES.find(x => x.type === t);
+        if (state.sim.money < b.cost) { showStatus("Not enough money"); return; }
+        state.sim.money -= b.cost;
+        state.business = { type: t };
+        pushNotification(`🏪 Opened ${b.name}!`);
+        logEvent(`Started business: ${b.name}`);
+        openCareer();
+      };
+    });
+  });
+}
+
+// =============================================================
+// SIDE JOBS
+// =============================================================
+function openSideJobs() {
+  let html = '<p class="small" style="margin-bottom:12px;">Quick gigs for fast cash. Watch your energy!</p>';
+  for (const sj of SIDE_JOBS) {
+    let pay = sj.pay;
+    if (sj.name === 'Freelance Gig' && state.luxuries.includes('laptop')) pay = Math.floor(pay * 1.5);
+    const locked = sj.eduReq && state.education < sj.eduReq;
+    html += `<div class="section-block">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <strong>${sj.icon} ${sj.name}</strong>
+          <div class="small">Pay: $${pay} · Energy ${sj.energy}${sj.eduReq?` · Edu req ${sj.eduReq}`:''}</div>
+        </div>
+        <button class="btn primary" data-sj="${sj.name}" style="width:auto;" ${locked?'disabled':''}>${locked?'🔒':'Do it'}</button>
+      </div>
+    </div>`;
+  }
+  openModal('🎯 Side Jobs', html, () => {
+    document.querySelectorAll('[data-sj]').forEach(b => {
+      b.onclick = () => {
+        const sj = SIDE_JOBS.find(x => x.name === b.dataset.sj);
+        if (sj.eduReq && state.education < sj.eduReq) return;
+        if (state.sim.needs.energy < 15) { showStatus('Too tired!'); return; }
+        let pay = sj.pay;
+        if (sj.name === 'Freelance Gig' && state.luxuries.includes('laptop')) pay = Math.floor(pay * 1.5);
+        state.sim.money += pay;
+        state.sim.needs.energy = clamp(state.sim.needs.energy + sj.energy, 0, 100);
+        if (sj.fun) state.sim.needs.fun = clamp(state.sim.needs.fun + sj.fun, 0, 100);
+        if (sj.social) state.sim.needs.social = clamp(state.sim.needs.social + sj.social, 0, 100);
+        if (sj.fitness) state.fitness = clamp(state.fitness + sj.fitness * multiplier('fitness'), 0, 100);
+        pushNotification(`${sj.icon} +$${pay}`, 'money');
+        logEvent(`Side gig: ${sj.name} +$${pay}`);
+        closeModal();
+      };
+    });
+  });
+}
+
+// =============================================================
+// BANK
+// =============================================================
+function openBank() {
+  let html = `<div class="section-block">
+    <h3>Account Summary</h3>
+    <div class="info-row"><span>Cash on hand</span><strong>$${Math.floor(state.sim.money)}</strong></div>
+    <div class="info-row"><span>Savings</span><strong>$${Math.floor(state.bank)}</strong></div>
+    <div class="info-row"><span>Interest rate</span><strong>${(0.5 * multiplier('interest')).toFixed(1)}% / month</strong></div>
+  </div>
+  <div class="section-block">
+    <h3>Deposit / Withdraw</h3>
+    <input class="txt" id="bank-amt" type="number" placeholder="Amount" value="100">
+    <div style="display:flex; gap:6px; margin-top:8px;">
+      <button class="btn primary" id="bank-dep">Deposit</button>
+      <button class="btn" id="bank-wd">Withdraw</button>
+    </div>
+  </div>
+  <div class="section-block">
+    <h3>Loans</h3>`;
+  if (state.loans.length === 0) html += '<p class="small">No active loans.</p>';
+  else for (const L of state.loans) html += `<div class="info-row"><span>${L.type}</span><strong>$${Math.floor(L.remaining)} ($${L.monthly}/mo)</strong></div>`;
+  html += `<div style="margin-top:8px; display:flex; gap:6px;">
+    <button class="btn warn" data-loan="2000">+$2k Loan ($200/mo)</button>
+    <button class="btn warn" data-loan="10000">+$10k ($1000/mo)</button>
+    <button class="btn warn" data-loan="50000">+$50k Mortgage ($500/mo)</button>
+  </div></div>`;
+  openModal('🏦 Bank', html, () => {
+    document.getElementById('bank-dep').onclick = () => {
+      const a = +document.getElementById('bank-amt').value;
+      if (a > 0 && state.sim.money >= a) { state.sim.money -= a; state.bank += a; pushNotification(`Deposited $${a}`); openBank(); }
+      else showStatus('Invalid amount');
+    };
+    document.getElementById('bank-wd').onclick = () => {
+      const a = +document.getElementById('bank-amt').value;
+      if (a > 0 && state.bank >= a) { state.bank -= a; state.sim.money += a; pushNotification(`Withdrew $${a}`); openBank(); }
+      else showStatus('Not enough savings');
+    };
+    document.querySelectorAll('[data-loan]').forEach(b => {
+      b.onclick = () => {
+        const amt = +b.dataset.loan;
+        const monthly = amt === 2000 ? 200 : amt === 10000 ? 1000 : 500;
+        const term = amt === 50000 ? 240 : 12;
+        const total = monthly * term;
+        state.loans.push({ type: amt === 50000 ? 'Mortgage' : 'Loan', amount: amt, monthly, remaining: total });
+        state.sim.money += amt;
+        pushNotification(`Loan: +$${amt}`, 'money');
+        logEvent(`Took loan: $${amt}`);
+        openBank();
+      };
+    });
+  });
+}
+
+// =============================================================
+// STOCKS
+// =============================================================
+function openStocks() {
+  let portfolioVal = 0;
+  for (const sym in state.portfolio) {
+    const stk = STOCKS.find(s => s.sym === sym);
+    if (stk) portfolioVal += state.portfolio[sym] * stk.price;
+  }
+  let html = `<div class="section-block">
+    <h3>Portfolio</h3>
+    <div class="info-row"><span>Total value</span><strong>$${Math.floor(portfolioVal)}</strong></div>
+    <div class="info-row"><span>Cash</span><strong>$${Math.floor(state.sim.money)}</strong></div>
+  </div>
+  <div class="section-block"><h3>Market</h3>`;
+  for (const s of STOCKS) {
+    const prev = s.history.length > 1 ? s.history[s.history.length-2] : s.price;
+    const change = ((s.price - prev) / prev * 100).toFixed(2);
+    const cls = change >= 0 ? 'up' : 'down';
+    const owned = state.portfolio[s.sym] || 0;
+    html += `<div class="stock-row">
+      <div class="stk-name">${s.name} (${s.sym})<div class="small">Owned: ${owned}</div></div>
+      <div class="stk-price">$${s.price.toFixed(2)}</div>
+      <div class="stk-change ${cls}">${change >= 0 ? '+' : ''}${change}%</div>
+      <button class="btn primary" data-buy="${s.sym}" style="width:auto;">Buy</button>
+      <button class="btn" data-sell="${s.sym}" style="width:auto;" ${owned?'':'disabled'}>Sell</button>
+    </div>`;
+  }
+  html += '</div>';
+  openModal('📊 Stock Market', html, () => {
+    document.querySelectorAll('[data-buy]').forEach(b => {
+      b.onclick = () => {
+        const sym = b.dataset.buy;
+        const stk = STOCKS.find(s => s.sym === sym);
+        if (state.sim.money < stk.price) { showStatus('Not enough money'); return; }
+        state.sim.money -= stk.price;
+        state.portfolio[sym] = (state.portfolio[sym] || 0) + 1;
+        state.costBasis[sym] = (state.costBasis[sym] || 0) + stk.price;
+        logEvent(`Bought 1 ${sym} @ $${stk.price.toFixed(2)}`);
+        openStocks();
+      };
+    });
+    document.querySelectorAll('[data-sell]').forEach(b => {
+      b.onclick = () => {
+        const sym = b.dataset.sell;
+        if (!(state.portfolio[sym] > 0)) return;
+        const stk = STOCKS.find(s => s.sym === sym);
+        state.sim.money += stk.price;
+        state.portfolio[sym]--;
+        if (state.portfolio[sym] === 0) delete state.portfolio[sym];
+        logEvent(`Sold 1 ${sym} @ $${stk.price.toFixed(2)}`);
+        openStocks();
+      };
+    });
+  });
+}
+
+// =============================================================
+// INSURANCE
+// =============================================================
+function openInsurance() {
+  const html = `<div class="section-block">
+    <h3>Health Insurance</h3>
+    <p class="small">Covers medical expenses from random events. $50/month.</p>
+    <div class="info-row"><span>Status</span><strong>${state.insurance.health ? 'Active ✅' : 'Not insured'}</strong></div>
+    <button class="btn ${state.insurance.health?'danger':'primary'}" id="ins-h">${state.insurance.health?'Cancel':'Buy Health Insurance'}</button>
+  </div>
+  <div class="section-block">
+    <h3>Life Insurance</h3>
+    <p class="small">Payout to family on death. $30/month.</p>
+    <div class="info-row"><span>Status</span><strong>${state.insurance.life ? 'Active ✅' : 'Not insured'}</strong></div>
+    <button class="btn ${state.insurance.life?'danger':'primary'}" id="ins-l">${state.insurance.life?'Cancel':'Buy Life Insurance'}</button>
+  </div>`;
+  openModal('🛡️ Insurance', html, () => {
+    document.getElementById('ins-h').onclick = () => { state.insurance.health = !state.insurance.health; pushNotification(state.insurance.health?'Health insurance: ON':'Cancelled'); openInsurance(); };
+    document.getElementById('ins-l').onclick = () => { state.insurance.life = !state.insurance.life; pushNotification(state.insurance.life?'Life insurance: ON':'Cancelled'); openInsurance(); };
+  });
+}
+
+// =============================================================
+// LUXURY SHOP
+// =============================================================
+function openLuxury() {
+  let html = `<p class="small" style="margin-bottom:12px;">Total prestige: ⭐ ${state.prestige}</p><div class="shop-grid">`;
+  for (const k in LUXURY) {
+    const x = LUXURY[k];
+    const owned = state.luxuries.includes(k);
+    const can = state.sim.money >= x.price;
+    html += `<div class="shop-item${owned?' locked':(can?'':' locked')}" data-lux="${k}">
+      <div class="shop-item-icon" style="background:#fef3c733; font-size:28px;">${x.icon}</div>
+      <div class="shop-item-name">${x.name}</div>
+      <div class="shop-item-price">$${x.price.toLocaleString()}</div>
+      <div class="shop-item-desc">${x.desc}<br>⭐ +${x.prestige} prestige${owned?'<br><b>OWNED</b>':''}</div>
+    </div>`;
+  }
+  html += '</div>';
+  openModal('💎 Luxury Goods', html, () => {
+    document.querySelectorAll('[data-lux]').forEach(el => {
+      el.onclick = () => {
+        const k = el.dataset.lux;
+        const x = LUXURY[k];
+        if (state.luxuries.includes(k)) { showStatus('Already owned'); return; }
+        if (state.sim.money < x.price) { showStatus("Can't afford it"); return; }
+        state.sim.money -= x.price;
+        state.luxuries.push(k);
+        state.prestige += x.prestige;
+        pushNotification(`${x.icon} Bought ${x.name}!`, 'money');
+        logEvent(`Bought luxury: ${x.name}`);
+        openLuxury();
+      };
+    });
+  });
+}
+
+// =============================================================
+// FAMILY (partner & kids)
+// =============================================================
+function openFamily() {
+  let html = '<div class="tabs"><div class="tab active" data-tab="partner">💑 Partner</div><div class="tab" data-tab="kids">👶 Kids</div></div><div id="fam-content"></div>';
+  openModal('👪 Family', html, () => {
+    document.querySelectorAll('#modal-body .tab').forEach(t => t.onclick = () => {
+      document.querySelectorAll('#modal-body .tab').forEach(x => x.classList.remove('active'));
+      t.classList.add('active');
+      renderFamilyTab(t.dataset.tab);
+    });
+    renderFamilyTab('partner');
+  });
+}
+function renderFamilyTab(tab) {
+  const c = document.getElementById('fam-content');
+  if (tab === 'partner') {
+    if (state.partner) {
+      c.innerHTML = `<div class="section-block">
+        <h3>${state.partner.married?'❤️':'💕'} ${state.partner.name}</h3>
+        <div class="info-row"><span>Status</span><strong>${state.partner.married?'Married':'Dating'}</strong></div>
+        <div class="info-row"><span>Love</span><strong>${state.partner.love}/100</strong></div>
+        ${state.partner.married ? `<div class="info-row"><span>Married days</span><strong>${state.partner.marriedDays || 0}</strong></div>` : ''}
+        <div style="display:flex; gap:6px; margin-top:8px;">
+          <button class="btn primary" id="date-btn">💐 Romantic Date ($50)</button>
+          ${!state.partner.married ? `<button class="btn success" id="propose-btn">💍 Propose</button>` : `<button class="btn success" id="kid-btn">👶 Have Kid</button>`}
+          <button class="btn danger" id="break-btn">💔 Break up</button>
+        </div>
+      </div>`;
+      const dateBtn = document.getElementById('date-btn');
+      dateBtn.onclick = () => {
+        if (state.sim.money < 50) { showStatus('Not enough money'); return; }
+        state.sim.money -= 50;
+        state.partner.love = clamp(state.partner.love + Math.floor(8 * multiplier('love')), 0, 100);
+        state.sim.needs.fun = clamp(state.sim.needs.fun + 20, 0, 100);
+        pushNotification('💕 Lovely date!', 'heart');
+        renderFamilyTab('partner');
+      };
+      const propose = document.getElementById('propose-btn');
+      if (propose) propose.onclick = () => {
+        if (!state.luxuries.includes('jewelry')) { showStatus("You need a Diamond Ring (luxury shop)!"); return; }
+        if (state.partner.love < 70) { showStatus("They're not ready yet."); return; }
+        state.partner.married = true;
+        state.partner.marriedDays = 0;
+        pushNotification(`💒 Married ${state.partner.name}!`, 'heart');
+        logEvent(`Married ${state.partner.name}`);
+        renderFamilyTab('partner');
+      };
+      const kidBtn = document.getElementById('kid-btn');
+      if (kidBtn) kidBtn.onclick = () => {
+        if (state.sim.money < 2000) { showStatus("Need $2000 for a baby."); return; }
+        state.sim.money -= 2000;
+        const names = ['Liam','Olivia','Noah','Emma','Ava','Mason','Sophia','Jack'];
+        const k = { name: names[Math.floor(Math.random()*names.length)], age: 0 };
+        state.kids.push(k);
+        pushNotification(`👶 Welcome baby ${k.name}!`, 'heart');
+        logEvent(`Had a kid: ${k.name}`);
+        renderFamilyTab('kids');
+        document.querySelectorAll('#modal-body .tab').forEach(x => x.classList.toggle('active', x.dataset.tab === 'kids'));
+      };
+      document.getElementById('break-btn').onclick = () => {
+        pushNotification(`💔 Broke up with ${state.partner.name}`, 'warning');
+        logEvent(`Broke up with ${state.partner.name}`);
+        state.partner = null;
+        state.stress = clamp(state.stress + 20, 0, 100);
+        renderFamilyTab('partner');
+      };
+    } else {
+      // Show NPCs you can date
+      let h = '<p class="small" style="margin-bottom:10px;">Build friendship to 60+ to confess. Charming personality helps!</p>';
+      for (const npc of state.npcs) {
+        const f = state.relationships[npc.name];
+        const can = f >= 60;
+        h += `<div class="section-block">
+          <strong>${npc.name}</strong>
+          <div class="info-row"><span>Friendship</span><strong>${f}/100</strong></div>
+          <button class="btn ${can?'primary':''}" data-confess="${npc.name}" ${can?'':'disabled'}>💕 Confess Love</button>
+        </div>`;
+      }
+      c.innerHTML = h;
+      document.querySelectorAll('[data-confess]').forEach(b => {
+        b.onclick = () => {
+          const name = b.dataset.confess;
+          const npc = state.npcs.find(n => n.name === name);
+          const success = Math.random() < 0.5 + state.relationships[name] * 0.005 + (state.luxuries.includes('jewelry')?0.2:0);
+          if (success) {
+            state.partner = { name, love: 50, married: false };
+            pushNotification(`💕 ${name} said yes!`, 'heart');
+            logEvent(`Started dating ${name}`);
+          } else {
+            pushNotification(`💔 ${name} turned you down. Awkward.`, 'warning');
+            state.relationships[name] = Math.max(0, state.relationships[name] - 15);
+            state.stress = clamp(state.stress + 15, 0, 100);
+          }
+          renderFamilyTab('partner');
+        };
+      });
+    }
+  } else {
+    if (state.kids.length === 0) c.innerHTML = '<p class="small">No kids yet. Get married first!</p>';
+    else {
+      let h = '<p class="small" style="margin-bottom:10px;">Each kid age 5+ costs $300/month for school.</p>';
+      for (const k of state.kids) {
+        h += `<div class="section-block">
+          <h3>👧 ${k.name}</h3>
+          <div class="info-row"><span>Age</span><strong>${Math.floor(k.age)}</strong></div>
+          <div class="info-row"><span>Status</span><strong>${k.age < 5 ? 'Toddler' : k.age < 13 ? 'Child' : k.age < 18 ? 'Teen' : 'Adult'}</strong></div>
+          <button class="btn primary" data-spend-kid="${k.name}">💝 Buy Toy ($30)</button>
+        </div>`;
+      }
+      c.innerHTML = h;
+      document.querySelectorAll('[data-spend-kid]').forEach(b => {
+        b.onclick = () => {
+          if (state.sim.money < 30) { showStatus('No money'); return; }
+          state.sim.money -= 30;
+          state.sim.needs.fun = clamp(state.sim.needs.fun + 5, 0, 100);
+          pushNotification(`Made ${b.dataset.spendKid} smile! 😊`, 'heart');
+        };
+      });
+    }
+  }
+}
+
+// =============================================================
+// PETS
+// =============================================================
+function openPets() {
+  let html = '';
+  if (state.pets.length === 0) html += '<p class="small" style="margin-bottom:10px;">No pets yet. Adopt one below!</p>';
+  else {
+    for (const p of state.pets) {
+      const def = PETS[p.type];
+      html += `<div class="section-block">
+        <h3>${def.icon} ${p.name} (${def.name})</h3>
+        <div class="info-row"><span>Hunger</span><strong>${p.hunger}/100</strong></div>
+        <div class="info-row"><span>Happiness</span><strong>${p.happy}/100</strong></div>
+        <div class="info-row"><span>Monthly cost</span><strong>$${def.monthlyCost}</strong></div>
+        <div style="display:flex; gap:6px;">
+          <button class="btn primary" data-feed="${p.name}">🍽️ Feed ($10)</button>
+          <button class="btn" data-play="${p.name}">🎾 Play</button>
+          <button class="btn warn" data-vet="${p.name}">🏥 Vet ($150)</button>
+        </div>
+      </div>`;
+    }
+  }
+  html += '<h3 style="margin: 14px 0 8px;">Adopt a Pet</h3><div class="shop-grid">';
+  for (const k in PETS) {
+    const x = PETS[k];
+    const can = state.sim.money >= x.price;
+    html += `<div class="shop-item${can?'':' locked'}" data-adopt="${k}">
+      <div class="shop-item-icon" style="background:#fee2e233; font-size: 28px;">${x.icon}</div>
+      <div class="shop-item-name">${x.name}</div>
+      <div class="shop-item-price">$${x.price}</div>
+      <div class="shop-item-desc">$${x.monthlyCost}/mo · +${x.funBonus} fun</div>
+    </div>`;
+  }
+  html += '</div>';
+  openModal('🐾 Pets', html, () => {
+    document.querySelectorAll('[data-adopt]').forEach(el => {
+      el.onclick = () => {
+        const k = el.dataset.adopt;
+        const x = PETS[k];
+        if (state.sim.money < x.price) { showStatus("Can't afford"); return; }
+        const names = ['Buddy','Whiskers','Charlie','Bella','Max','Luna','Coco','Rocky'];
+        state.sim.money -= x.price;
+        state.pets.push({ type: k, name: names[Math.floor(Math.random()*names.length)], hunger: 80, happy: 80 });
+        pushNotification(`${x.icon} Welcome home, new friend!`, 'heart');
+        logEvent(`Adopted a ${x.name}`);
+        openPets();
+      };
+    });
+    document.querySelectorAll('[data-feed]').forEach(b => b.onclick = () => {
+      if (state.sim.money < 10) return;
+      state.sim.money -= 10;
+      const p = state.pets.find(x => x.name === b.dataset.feed);
+      if (p) p.hunger = clamp(p.hunger + 30, 0, 100);
+      openPets();
+    });
+    document.querySelectorAll('[data-play]').forEach(b => b.onclick = () => {
+      const p = state.pets.find(x => x.name === b.dataset.play);
+      if (p) { p.happy = clamp(p.happy + 20, 0, 100); state.sim.needs.fun = clamp(state.sim.needs.fun + 8, 0, 100); }
+      pushNotification('🎾 Pet had fun!', 'heart');
+      openPets();
+    });
+    document.querySelectorAll('[data-vet]').forEach(b => b.onclick = () => {
+      if (state.sim.money < 150) { showStatus("Can't afford the vet"); return; }
+      state.sim.money -= 150;
+      const p = state.pets.find(x => x.name === b.dataset.vet);
+      if (p) { p.hunger = 100; p.happy = 100; }
+      pushNotification('Pet is healthy 💖', 'heart');
+      openPets();
+    });
+  });
+}
+
+// =============================================================
+// HOBBIES
+// =============================================================
+function openHobbies() {
+  let html = '';
+  for (const k in HOBBIES) {
+    const h = HOBBIES[k];
+    const owned = state.hobbies[k];
+    const lvl = owned ? state.hobbies[k].level : 0;
+    html += `<div class="section-block">
+      <h3>${h.icon} ${h.name} ${owned?`(Lv ${lvl.toFixed(1)})`:''}</h3>
+      <div class="info-row"><span>Per session</span><strong>$${h.sessionCost}</strong></div>
+      <div class="info-row"><span>Mood/Stress</span><strong>+${h.funGain} / -${h.stressDrop}</strong></div>
+      ${owned ? `<button class="btn primary" data-prac="${k}">Practice (-$${h.sessionCost})</button>` :
+                `<button class="btn warn" data-learn="${k}">Learn (-$${h.startCost})</button>`}
+    </div>`;
+  }
+  openModal('🎨 Hobbies', html, () => {
+    document.querySelectorAll('[data-learn]').forEach(b => b.onclick = () => {
+      const k = b.dataset.learn;
+      const h = HOBBIES[k];
+      if (state.sim.money < h.startCost) { showStatus("Can't afford"); return; }
+      state.sim.money -= h.startCost;
+      state.hobbies[k] = { level: 1 };
+      pushNotification(`${h.icon} Started learning ${h.name}!`);
+      logEvent(`Started hobby: ${h.name}`);
+      openHobbies();
+    });
+    document.querySelectorAll('[data-prac]').forEach(b => b.onclick = () => {
+      const k = b.dataset.prac;
+      const h = HOBBIES[k];
+      if (state.sim.money < h.sessionCost) { showStatus("Can't afford"); return; }
+      state.sim.money -= h.sessionCost;
+      state.hobbies[k].level += 0.2 * multiplier('hobby');
+      state.sim.needs.fun = clamp(state.sim.needs.fun + h.funGain, 0, 100);
+      state.stress = Math.max(0, state.stress - h.stressDrop);
+      if (h.fitness) state.fitness = clamp(state.fitness + h.fitness * multiplier('fitness'), 0, 100);
+      if (h.social) state.sim.needs.social = clamp(state.sim.needs.social + h.social, 0, 100);
+      if (h.hunger) state.sim.needs.hunger = clamp(state.sim.needs.hunger + h.hunger, 0, 100);
+      if (h.money && state.hobbies[k].level >= 3) {
+        const earned = Math.floor(h.money * (state.hobbies[k].level / 3));
+        state.sim.money += earned;
+        pushNotification(`${h.icon} Sold work: +$${earned}`, 'money');
+      }
+      pushNotification(`${h.icon} +Fun, -Stress`);
+      openHobbies();
+    });
+  });
+}
+
+// =============================================================
+// BILLS
+// =============================================================
+function openBills() {
+  const m = multiplier('bills');
+  const items = [
+    ['💧 Water', Math.floor(30 * m)],
+    ['💡 Electric', Math.floor((50 + (state.season==='Winter'?40:state.season==='Summer'?25:0)) * m)],
+    ['🌐 Internet', Math.floor(40 * m)],
+    ['📞 Phone', Math.floor((30 + (state.luxuries.includes('phone')?30:0)) * m)],
+    ['🏠 Property', Math.floor(100 * m)],
+  ];
+  if (state.insurance.health) items.push(['🛡️ Health Insurance', 50]);
+  if (state.insurance.life) items.push(['🛡️ Life Insurance', 30]);
+  for (const k of state.kids) if (k.age >= 5) items.push([`📚 School (${k.name})`, 300]);
+  for (const p of state.pets) items.push([`${PETS[p.type].icon} ${p.name} care`, PETS[p.type].monthlyCost]);
+  for (const L of state.loans) items.push([`🏦 ${L.type}`, L.monthly]);
+  let total = 0;
+  let html = '<p class="small" style="margin-bottom:10px;">Bills auto-pay on day 1 of each month.</p>';
+  for (const [label, amt] of items) { total += amt; html += `<div class="info-row"><span>${label}</span><strong>$${amt}</strong></div>`; }
+  html += `<div class="info-row" style="margin-top:8px;"><strong>Total Monthly</strong><strong>$${total}</strong></div>`;
+  openModal('🧾 Monthly Bills', html);
+}
+
+// =============================================================
+// LOG
+// =============================================================
+function logEvent(text) {
+  const t = `Y${state.date.year} ${SEASONS[Math.floor((state.date.month-1)/3)].slice(0,3)} D${state.date.day}`;
+  state.log.unshift({ time: t, text });
+  if (state.log.length > 200) state.log.pop();
+}
+function openLog() {
+  let html = state.log.length === 0 ? '<p class="small">No events yet. Live a little!</p>' : '';
+  for (const e of state.log) html += `<div class="log-entry"><span class="log-time">${e.time}</span><span>${e.text}</span></div>`;
+  openModal('📜 Life Log', html);
+}
+
+// =============================================================
+// MODAL UTILS
+// =============================================================
+function openModal(title, body, after) {
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-body').innerHTML = body;
+  document.getElementById('generic-modal').classList.remove('hidden');
+  if (after) after();
+}
+function closeModal() { document.getElementById('generic-modal').classList.add('hidden'); }
+
+document.getElementById('modal-close-btn').onclick = closeModal;
+document.getElementById('generic-modal').addEventListener('click', e => {
+  if (e.target.id === 'generic-modal') closeModal();
+});
+
+// =============================================================
+// MODE BANNER + STATUS
+// =============================================================
+function updateModeBanner() {
+  const banner = document.getElementById('mode-banner');
+  banner.classList.remove('placing');
+  if (state.mode === 'placing') {
+    const itemName = state.movingItem ? FURNITURE[state.movingItem.type].name : (state.placingType ? FURNITURE[state.placingType].name : '');
+    banner.textContent = state.movingItem ? '↔ Moving — Click new spot' : `🛒 Placing ${itemName} — Click in house`;
+    banner.classList.remove('hidden'); banner.classList.add('placing');
+    canvas.style.cursor = 'crosshair';
+  } else if (state.mode === 'editing') {
+    banner.textContent = '🛠️ Edit Mode — Click furniture to move/sell';
+    banner.classList.remove('hidden'); canvas.style.cursor = 'pointer';
+  } else { banner.classList.add('hidden'); canvas.style.cursor = 'pointer'; }
+}
+function pushNotification(msg, kind = '') {
+  const div = document.createElement('div');
+  div.className = 'notification' + (kind ? ' ' + kind : '');
+  div.textContent = msg;
+  document.getElementById('notifications').appendChild(div);
+  setTimeout(() => { div.style.opacity = '0'; setTimeout(() => div.remove(), 500); }, 2500);
+}
+let statusTimer = null;
+function showStatus(msg) {
+  const el = document.getElementById('status-msg');
+  el.textContent = msg; el.classList.add('show');
+  clearTimeout(statusTimer);
+  statusTimer = setTimeout(() => el.classList.remove('show'), 2200);
+}
+function hideStatus() { document.getElementById('status-msg').classList.remove('show'); }
+
+// =============================================================
+// SAVE / LOAD
+// =============================================================
+async function saveGame() {
+  try {
+    const data = JSON.stringify(state);
+    if (window.storage && window.storage.set) {
+      await window.storage.set('lillife_save', data);
+      pushNotification('💾 Game saved!');
+    } else {
+      // Fallback: show save string
+      prompt('Copy this save string:', data);
+    }
+  } catch (e) {
+    pushNotification('Save failed: ' + e.message, 'warning');
+  }
+}
+async function loadGame() {
+  try {
+    if (window.storage && window.storage.get) {
+      const r = await window.storage.get('lillife_save');
+      if (!r) { pushNotification('No save found.', 'warning'); return; }
+      const saved = JSON.parse(r.value);
+      Object.assign(state, saved);
+      // Reset transient
+      state.sim.pathTiles = []; state.sim.pendingAction = null;
+      for (const n of state.npcs) { n.pathTiles = []; }
+      state.lastTime = performance.now();
+      updateModeBanner();
+      pushNotification('📂 Game loaded!');
+    } else {
+      pushNotification('Storage unavailable', 'warning');
+    }
+  } catch (e) { pushNotification('Load failed: ' + e.message, 'warning'); }
+}
+
+// =============================================================
+// CHARACTER CREATION
+// =============================================================
+function setupCharCreation() {
+  const pcont = document.getElementById('char-personality');
+  for (const k in PERSONALITIES) {
+    const div = document.createElement('div');
+    div.className = 'pick' + (k === 'Friendly' ? ' selected' : '');
+    div.dataset.k = k;
+    div.innerHTML = `<div class="pick-name">${k}</div><div class="pick-desc">${PERSONALITIES[k].desc}</div>`;
+    div.onclick = () => {
+      pcont.querySelectorAll('.pick').forEach(x => x.classList.remove('selected'));
+      div.classList.add('selected');
+      state.personality = k;
+    };
+    pcont.appendChild(div);
+  }
+  const tcont = document.getElementById('char-talent');
+  for (const k in TALENTS) {
+    const div = document.createElement('div');
+    div.className = 'pick' + (k === 'Smart' ? ' selected' : '');
+    div.dataset.k = k;
+    div.innerHTML = `<div class="pick-name">${k}</div><div class="pick-desc">${TALENTS[k].desc}</div>`;
+    div.onclick = () => {
+      tcont.querySelectorAll('.pick').forEach(x => x.classList.remove('selected'));
+      div.classList.add('selected');
+      state.talent = k;
+    };
+    tcont.appendChild(div);
+  }
+  document.getElementById('char-start').onclick = () => {
+    const name = document.getElementById('char-name').value.trim() || 'Alex';
+    state.sim.name = name;
+    state.charCreated = true;
+    document.getElementById('char-modal').classList.add('hidden');
+    pushNotification(`Welcome, ${name}! Your story begins... 🌟`);
+    logEvent(`Started life as ${name}`);
+  };
+}
+
+// =============================================================
+// HOOK UP UI BUTTONS
+// =============================================================
+document.getElementById('m-shop').onclick = openShop;
+document.getElementById('m-work').onclick = () => {
+  if (state.mode === 'placing') cancelPlacement();
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+    if (state.map[r][c] === T.WORK) { cancelAction(); setSimDestination(c, r, () => startWorkAction()); return; }
+  }
+};
+document.getElementById('m-career').onclick = openCareer;
+document.getElementById('m-side').onclick = openSideJobs;
+document.getElementById('m-bank').onclick = openBank;
+document.getElementById('m-stocks').onclick = openStocks;
+document.getElementById('m-insure').onclick = openInsurance;
+document.getElementById('m-luxury').onclick = openLuxury;
+document.getElementById('m-family').onclick = openFamily;
+document.getElementById('m-pets').onclick = openPets;
+document.getElementById('m-hobby').onclick = openHobbies;
+document.getElementById('m-bills').onclick = openBills;
+document.getElementById('m-log').onclick = openLog;
+document.getElementById('m-edit').onclick = () => {
+  if (state.mode === 'placing') cancelPlacement();
+  state.mode = state.mode === 'editing' ? 'normal' : 'editing';
+  hideFloatingMenu();
+  updateModeBanner();
+  document.getElementById('m-edit').classList.toggle('active', state.mode === 'editing');
+};
+document.getElementById('btn-save').onclick = saveGame;
+document.getElementById('btn-load').onclick = loadGame;
+document.querySelectorAll('.speed-ctl button').forEach(b => {
+  b.onclick = () => {
+    document.querySelectorAll('.speed-ctl button').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    const s = +b.dataset.spd;
+    if (s === 0) { state.paused = true; }
+    else { state.paused = false; state.speed = s; }
+  };
+});
+
+// =============================================================
+// RENDER
+// =============================================================
+function render() {
+  ctx.fillStyle = '#86c25e';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Season tint
+  if (state.season === 'Winter') { ctx.fillStyle = 'rgba(220, 230, 240, 0.4)'; ctx.fillRect(0, 0, canvas.width, canvas.height); }
+  else if (state.season === 'Fall') { ctx.fillStyle = 'rgba(220, 150, 80, 0.15)'; ctx.fillRect(0, 0, canvas.width, canvas.height); }
+
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) drawTile(c, r);
+
+  // Building labels
+  ctx.fillStyle = 'rgba(0,0,0,0.45)'; ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('YOUR HOUSE', 6.5 * TILE, 1.7 * TILE);
+  ctx.fillText('OFFICE', 20.5 * TILE, 3.7 * TILE);
+
+  const sortedFurn = [...state.furniture].sort((a, b) => a.row - b.row);
+  for (const f of sortedFurn) drawFurniture(f);
+
+  if (state.mode === 'placing' && state.hoverTile) drawPlacementPreview();
+
+  const actors = [
+    ...state.npcs.map(n => ({ y: n.y, kind: 'npc', ref: n })),
+    { y: state.sim.y, kind: 'sim', ref: state.sim },
+  ];
+  // Pet follows sim
+  for (const p of state.pets.slice(0, 1)) actors.push({ y: state.sim.y + 2, kind: 'pet', ref: p });
+  actors.sort((a, b) => a.y - b.y);
+  for (const a of actors) {
+    if (a.kind === 'sim') drawSim(a.ref);
+    else if (a.kind === 'pet') drawPet(a.ref);
+    else drawNpc(a.ref);
+  }
+
+  if (state.mode === 'editing') {
+    const t = (Date.now() / 200) % 8;
+    for (const f of state.furniture) {
+      ctx.strokeStyle = 'rgba(245, 158, 11, 0.95)'; ctx.lineWidth = 2;
+      ctx.setLineDash([4,4]); ctx.lineDashOffset = -t;
+      ctx.strokeRect(f.col * TILE + 1, f.row * TILE + 1, TILE - 2, TILE - 2);
+    }
+    ctx.setLineDash([]); ctx.lineDashOffset = 0;
+  }
+
+  if (state.sim.action) drawActionBar();
+
+  // Weather particles
+  drawWeatherParticles();
+}
+
+function drawWeatherParticles() {
+  // Spawn particles
+  if (state.weather === 'Rainy' || state.weather === 'Stormy') {
+    for (let i = 0; i < 3; i++) state.particles.push({ x: Math.random()*canvas.width, y: -5, vy: 6+Math.random()*3, type: 'rain', life: 1 });
+  } else if (state.weather === 'Snowy') {
+    for (let i = 0; i < 2; i++) state.particles.push({ x: Math.random()*canvas.width, y: -5, vy: 1+Math.random()*1.2, vx: (Math.random()-0.5)*0.5, type: 'snow', life: 1 });
+  } else if (state.season === 'Fall' && Math.random() < 0.3) {
+    state.particles.push({ x: Math.random()*canvas.width, y: -5, vy: 0.6+Math.random()*0.6, vx: (Math.random()-0.5)*0.6, type: 'leaf', life: 1, rot: Math.random()*Math.PI*2 });
+  }
+  state.particles = state.particles.filter(p => {
+    p.y += p.vy; p.x += p.vx || 0;
+    if (p.rot !== undefined) p.rot += 0.1;
+    if (p.type === 'rain') {
+      ctx.strokeStyle = 'rgba(160,200,230,0.7)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x-1, p.y+5); ctx.stroke();
+    } else if (p.type === 'snow') {
+      ctx.fillStyle = 'rgba(255,255,255,0.9)';
+      ctx.beginPath(); ctx.arc(p.x, p.y, 1.5, 0, Math.PI*2); ctx.fill();
+    } else if (p.type === 'leaf') {
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+      ctx.fillStyle = '#dc7b3a';
+      ctx.beginPath(); ctx.ellipse(0, 0, 3, 1.5, 0, 0, Math.PI*2); ctx.fill();
+      ctx.restore();
+    }
+    return p.y < canvas.height + 10;
+  });
+  // Cap particles
+  if (state.particles.length > 250) state.particles.splice(0, state.particles.length - 250);
+}
+
+function drawTile(c, r) {
+  const t = state.map[r][c];
+  const x = c * TILE, y = r * TILE;
+  switch (t) {
+    case T.GRASS: {
+      ctx.fillStyle = state.season === 'Winter' ? '#cdd9d3' : '#86c25e';
+      ctx.fillRect(x, y, TILE, TILE);
+      const seed = (c * 31 + r * 17) % 9;
+      if (seed < 3 && state.season !== 'Winter') {
+        ctx.fillStyle = '#76b250';
+        ctx.fillRect(x + 6 + seed * 2, y + 8, 2, 4);
+        ctx.fillRect(x + 18 + seed, y + 20, 2, 4);
+      }
+      break;
+    }
+    case T.PATH: {
+      ctx.fillStyle = state.season === 'Winter' ? '#e8e4dd' : '#d4b78f';
+      ctx.fillRect(x, y, TILE, TILE);
+      const s2 = (c * 13 + r * 7) % 6;
+      ctx.fillStyle = '#c4a778';
+      ctx.fillRect(x + s2 * 4, y + s2 * 3, 2, 2);
+      break;
+    }
+    case T.FLOOR: {
+      ctx.fillStyle = '#d6b48c'; ctx.fillRect(x, y, TILE, TILE);
+      ctx.strokeStyle = 'rgba(0,0,0,0.08)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(x, y + TILE - 0.5); ctx.lineTo(x + TILE, y + TILE - 0.5); ctx.stroke();
+      if (c % 2 === 0) { ctx.beginPath(); ctx.moveTo(x + TILE - 0.5, y); ctx.lineTo(x + TILE - 0.5, y + TILE); ctx.stroke(); }
+      break;
+    }
+    case T.WALL: {
+      ctx.fillStyle = '#7e5a3c'; ctx.fillRect(x, y, TILE, TILE);
+      ctx.fillStyle = '#9c7654'; ctx.fillRect(x + 1, y + 1, TILE - 2, TILE - 2);
+      ctx.strokeStyle = '#6b4a2e'; ctx.lineWidth = 1;
+      const br = (r % 2) * 8;
+      ctx.beginPath();
+      ctx.moveTo(x, y + 11); ctx.lineTo(x + TILE, y + 11);
+      ctx.moveTo(x, y + 22); ctx.lineTo(x + TILE, y + 22);
+      ctx.moveTo(x + 8 + br, y); ctx.lineTo(x + 8 + br, y + 11);
+      ctx.moveTo(x + 24 - br, y + 11); ctx.lineTo(x + 24 - br, y + 22);
+      ctx.moveTo(x + 8 + br, y + 22); ctx.lineTo(x + 8 + br, y + TILE);
+      ctx.stroke();
+      break;
+    }
+    case T.DOOR: {
+      ctx.fillStyle = '#d6b48c'; ctx.fillRect(x, y, TILE, TILE);
+      ctx.fillStyle = '#854d2a'; ctx.fillRect(x + 4, y + 2, TILE - 8, TILE - 4);
+      ctx.strokeStyle = '#5b3517'; ctx.strokeRect(x + 4.5, y + 2.5, TILE - 9, TILE - 5);
+      ctx.fillStyle = '#fbbf24'; ctx.fillRect(x + 22, y + 16, 3, 3);
+      break;
+    }
+    case T.WORK: {
+      ctx.fillStyle = '#d6b48c'; ctx.fillRect(x, y, TILE, TILE);
+      ctx.fillStyle = '#5b3a20'; ctx.fillRect(x + 4, y + 8, TILE - 8, TILE - 14);
+      ctx.fillStyle = '#3b82f6'; ctx.fillRect(x + 8, y + 12, 16, 9);
+      ctx.fillStyle = '#1e3a8a'; ctx.fillRect(x + 9, y + 13, 14, 7);
+      ctx.fillStyle = '#fff'; ctx.fillRect(x + 11, y + 15, 5, 1); ctx.fillRect(x + 11, y + 17, 8, 1);
+      break;
+    }
+  }
+}
+
+function drawSim(s) {
+  const x = s.x, y = s.y;
+  const bob = Math.sin(s.bob) * 1.5;
+  ctx.fillStyle = 'rgba(0,0,0,0.25)';
+  ctx.beginPath(); ctx.ellipse(x, y + 10, 9, 3.5, 0, 0, Math.PI*2); ctx.fill();
+  // Body, scaled by weight
+  const wScale = clamp(state.weight / 65, 0.85, 1.3);
+  ctx.fillStyle = '#fbbf24';
+  ctx.beginPath(); ctx.arc(x, y + bob, 8 * wScale, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#f59e0b'; ctx.fillRect(x - 7*wScale, y + 2 + bob, 14*wScale, 6);
+  ctx.fillStyle = '#fde68a';
+  ctx.beginPath(); ctx.arc(x, y - 6 + bob, 6, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#7c2d12';
+  ctx.beginPath(); ctx.arc(x, y - 8 + bob, 5.5, Math.PI, 0); ctx.fill();
+  // Age coloring (gray hair for old)
+  if (state.age >= 60) { ctx.fillStyle = '#d1d5db'; ctx.beginPath(); ctx.arc(x, y - 8 + bob, 5.5, Math.PI, 0); ctx.fill(); }
+  const fx = Math.cos(s.facing)*1.5, fy = Math.sin(s.facing)*1;
+  ctx.fillStyle = '#1f2937';
+  ctx.fillRect(x - 2.5 + fx, y - 7 + bob + fy, 1.5, 1.5);
+  ctx.fillRect(x + 1 + fx, y - 7 + bob + fy, 1.5, 1.5);
+  ctx.strokeStyle = 'rgba(16, 185, 129, 0.85)'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(x, y + 9, 11, 0, Math.PI*2); ctx.stroke();
+}
+
+function drawNpc(n) {
+  const x = n.x, y = n.y;
+  const bob = Math.sin(n.bob) * 1.5;
+  ctx.fillStyle = 'rgba(0,0,0,0.25)';
+  ctx.beginPath(); ctx.ellipse(x, y + 10, 9, 3.5, 0, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = n.color;
+  ctx.beginPath(); ctx.arc(x, y + bob, 8, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = darken(n.color, 0.15);
+  ctx.fillRect(x - 7, y + 2 + bob, 14, 6);
+  ctx.fillStyle = '#fde68a';
+  ctx.beginPath(); ctx.arc(x, y - 6 + bob, 6, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = n.hairColor;
+  ctx.beginPath(); ctx.arc(x, y - 8 + bob, 5.5, Math.PI, 0); ctx.fill();
+  ctx.fillStyle = '#1f2937';
+  ctx.fillRect(x - 2.5, y - 7 + bob, 1.5, 1.5);
+  ctx.fillRect(x + 1, y - 7 + bob, 1.5, 1.5);
+  // Heart label if partner
+  let label = n.name;
+  if (state.partner && state.partner.name === n.name) label = (state.partner.married ? '💍 ' : '💕 ') + label;
+  ctx.fillStyle = 'rgba(255,255,255,0.92)';
+  const w = label.length * 6 + 8;
+  ctx.fillRect(x - w/2, y - 24, w, 12);
+  ctx.fillStyle = '#1f2937'; ctx.font = 'bold 10px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText(label, x, y - 15);
+  if (state.sim.action && state.sim.action.type === 'chat' && state.sim.action.target === n) {
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(x + 12, y - 18, 7, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#1f2937'; ctx.font = 'bold 10px sans-serif';
+    ctx.fillText('💬', x + 12, y - 14);
+  }
+}
+
+function drawPet(p) {
+  const def = PETS[p.type];
+  // Pet follows sim
+  const tx = state.sim.x - 12, ty = state.sim.y + 10;
+  p._x = (p._x === undefined) ? tx : p._x + (tx - p._x) * 0.1;
+  p._y = (p._y === undefined) ? ty : p._y + (ty - p._y) * 0.1;
+  ctx.fillStyle = 'rgba(0,0,0,0.2)';
+  ctx.beginPath(); ctx.ellipse(p._x, p._y + 6, 6, 2, 0, 0, Math.PI*2); ctx.fill();
+  ctx.font = '20px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText(def.icon, p._x, p._y + 6);
+}
+
+function darken(hex, amt) {
+  const c = hex.replace('#',''); const num = parseInt(c, 16);
+  let r = (num >> 16) & 255, g = (num >> 8) & 255, b = num & 255;
+  r = Math.max(0, Math.floor(r * (1-amt))); g = Math.max(0, Math.floor(g * (1-amt))); b = Math.max(0, Math.floor(b * (1-amt)));
+  return `rgb(${r},${g},${b})`;
+}
+
+function drawFurniture(f) {
+  const x = f.col * TILE, y = f.row * TILE;
+  ctx.save();
+  switch (f.type) {
+    case 'bed':
+      ctx.fillStyle = '#3b82f6'; ctx.fillRect(x + 3, y + 4, TILE - 6, TILE - 8);
+      ctx.fillStyle = '#fff'; ctx.fillRect(x + 5, y + 6, TILE - 10, 7);
+      ctx.fillStyle = '#dbeafe'; ctx.fillRect(x + 5, y + 15, TILE - 10, TILE - 21);
+      ctx.strokeStyle = '#1e40af'; ctx.lineWidth = 1;
+      ctx.strokeRect(x + 3.5, y + 4.5, TILE - 7, TILE - 9); break;
+    case 'fridge':
+      ctx.fillStyle = '#f3f4f6'; ctx.fillRect(x + 4, y + 3, TILE - 8, TILE - 6);
+      ctx.strokeStyle = '#9ca3af'; ctx.lineWidth = 1;
+      ctx.strokeRect(x + 4.5, y + 3.5, TILE - 9, TILE - 7);
+      ctx.beginPath(); ctx.moveTo(x + 4, y + 14); ctx.lineTo(x + TILE - 4, y + 14); ctx.stroke();
+      ctx.fillStyle = '#9ca3af'; ctx.fillRect(x + 7, y + 8, 2, 4); ctx.fillRect(x + 7, y + 18, 2, 4); break;
+    case 'shower':
+      ctx.fillStyle = '#bae6fd'; ctx.fillRect(x + 3, y + 3, TILE - 6, TILE - 6);
+      ctx.strokeStyle = '#0284c7'; ctx.strokeRect(x + 3.5, y + 3.5, TILE - 7, TILE - 7);
+      ctx.fillStyle = '#0ea5e9'; ctx.beginPath(); ctx.arc(x + TILE/2, y + 8, 4, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#7dd3fc'; for (let i = 0; i < 4; i++) ctx.fillRect(x + 10 + i*4, y + 14 + (i%2)*4, 2, 4); break;
+    case 'toilet':
+      ctx.fillStyle = '#f3f4f6'; ctx.fillRect(x + 7, y + 3, TILE - 14, 9);
+      ctx.beginPath(); ctx.ellipse(x + TILE/2, y + 19, 8, 6, 0, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#9ca3af'; ctx.beginPath(); ctx.ellipse(x + TILE/2, y + 19, 5, 3.5, 0, 0, Math.PI*2); ctx.fill();
+      ctx.strokeStyle = '#6b7280'; ctx.strokeRect(x + 7.5, y + 3.5, TILE - 15, 8); break;
+    case 'tv':
+      ctx.fillStyle = '#1f2937'; ctx.fillRect(x + 2, y + 4, TILE - 4, TILE - 12);
+      ctx.fillStyle = '#60a5fa'; ctx.fillRect(x + 4, y + 6, TILE - 8, TILE - 16);
+      ctx.fillStyle = 'rgba(255,255,255,0.4)'; ctx.fillRect(x + 5, y + 7, 4, 2);
+      ctx.fillStyle = '#374151'; ctx.fillRect(x + 8, y + TILE - 8, TILE - 16, 4);
+      ctx.fillRect(x + TILE/2 - 4, y + TILE - 4, 8, 2); break;
+    case 'sofa':
+      ctx.fillStyle = '#f97316'; ctx.fillRect(x + 2, y + 8, TILE - 4, TILE - 12);
+      ctx.fillStyle = '#ea580c'; ctx.fillRect(x + 2, y + 8, TILE - 4, 6);
+      ctx.fillStyle = '#fb923c'; ctx.fillRect(x + 4, y + 14, 8, 7); ctx.fillRect(x + TILE - 12, y + 14, 8, 7);
+      ctx.fillStyle = '#c2410c'; ctx.fillRect(x + 6, y + TILE - 4, 4, 2); ctx.fillRect(x + TILE - 10, y + TILE - 4, 4, 2); break;
+    case 'phone':
+      ctx.fillStyle = '#1f2937'; ctx.fillRect(x + 9, y + 5, 14, 22);
+      ctx.fillStyle = '#22c55e'; ctx.fillRect(x + 11, y + 8, 10, 14);
+      ctx.fillStyle = '#fff'; ctx.font = 'bold 10px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText('☎', x + 16, y + 18);
+      ctx.fillStyle = '#374151'; ctx.fillRect(x + 13, y + 24, 6, 1.5); break;
+    case 'stove':
+      ctx.fillStyle = '#374151'; ctx.fillRect(x + 3, y + 3, TILE - 6, TILE - 6);
+      ctx.strokeStyle = '#1f2937'; ctx.strokeRect(x + 3.5, y + 3.5, TILE - 7, TILE - 7);
+      ctx.fillStyle = '#dc2626';
+      ctx.beginPath(); ctx.arc(x + 11, y + 12, 3.5, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(x + 21, y + 12, 3.5, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#9ca3af'; ctx.fillRect(x + 6, y + 21, TILE - 12, 5);
+      ctx.fillStyle = '#1f2937'; ctx.fillRect(x + 8, y + 23, TILE - 16, 1); break;
+    case 'desk':
+      ctx.fillStyle = '#7c3aed'; ctx.fillRect(x + 3, y + 6, TILE - 6, TILE - 14);
+      ctx.fillStyle = '#a78bfa'; ctx.fillRect(x + 5, y + 8, TILE - 10, 4);
+      ctx.fillStyle = '#fff'; ctx.fillRect(x + 8, y + 14, 8, 6);
+      ctx.fillStyle = '#7c3aed'; ctx.fillRect(x + 5, y + TILE - 8, 3, 6); ctx.fillRect(x + TILE - 8, y + TILE - 8, 3, 6); break;
+    case 'treadmill':
+      ctx.fillStyle = '#0ea5e9'; ctx.fillRect(x + 4, y + 4, TILE - 8, TILE - 8);
+      ctx.fillStyle = '#1e40af'; ctx.fillRect(x + 6, y + 8, TILE - 12, TILE - 18);
+      ctx.fillStyle = '#fff'; ctx.fillRect(x + 8, y + 10, 4, 2); ctx.fillRect(x + 8, y + 14, 8, 1);
+      ctx.fillStyle = '#1f2937'; ctx.fillRect(x + 6, y + TILE - 10, TILE - 12, 5); break;
+  }
+  ctx.restore();
+}
+
+function drawPlacementPreview() {
+  if (!state.hoverTile) return;
+  const { c, r } = state.hoverTile;
+  const valid = isInsideHouse(c, r) && tileAt(c, r) === T.FLOOR && !furnitureAt(c, r);
+  ctx.fillStyle = valid ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)';
+  ctx.fillRect(c * TILE, r * TILE, TILE, TILE);
+  ctx.strokeStyle = valid ? '#10b981' : '#ef4444'; ctx.lineWidth = 2;
+  ctx.strokeRect(c * TILE + 1, r * TILE + 1, TILE - 2, TILE - 2);
+  if (valid && state.placingType) {
+    ctx.globalAlpha = 0.65;
+    drawFurniture({ type: state.placingType, col: c, row: r });
+    ctx.globalAlpha = 1;
+  }
+}
+
+function drawActionBar() {
+  const a = state.sim.action;
+  const x = state.sim.x, y = state.sim.y - 28;
+  const w = 36, h = 5;
+  const pct = 1 - a.timeLeft / a.totalTime;
+  ctx.fillStyle = '#fff'; ctx.font = 'bold 10px sans-serif'; ctx.textAlign = 'center';
+  ctx.strokeStyle = 'rgba(0,0,0,0.7)'; ctx.lineWidth = 3;
+  ctx.strokeText(a.label, x, y - 4); ctx.fillText(a.label, x, y - 4);
+  ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(x - w/2, y, w, h);
+  ctx.fillStyle = '#10b981'; ctx.fillRect(x - w/2, y, w * pct, h);
+}
+
+// =============================================================
+// UI UPDATE
+// =============================================================
+const needIcons = { hunger: '🍔', energy: '⚡', social: '💬', fun: '🎮', hygiene: '🚿' };
+const needNames = { hunger: 'Hunger', energy: 'Energy', social: 'Social', fun: 'Fun', hygiene: 'Hygiene' };
+
+function updateUI() {
+  // Top bar
+  document.getElementById('pill-date').textContent = `📅 Y${state.date.year} ${state.season} D${state.date.day}${state.holiday?' '+state.holiday:''}`;
+  document.getElementById('pill-weather').textContent = `${WEATHER_ICON[state.weather] || '☀️'} ${state.weather}`;
+  document.getElementById('pill-age').textContent = `👤 ${state.age} ${getStageInfo().name}`;
+  document.getElementById('pill-money').textContent = `💰 $${Math.floor(state.sim.money)}`;
+
+  // Needs
+  const needsList = document.getElementById('needs-list');
+  needsList.innerHTML = Object.entries(state.sim.needs).map(([k,v]) => {
+    const pct = clamp(v, 0, 100);
+    const color = pct > 60 ? '#10b981' : pct > 30 ? '#f59e0b' : '#ef4444';
+    return `<div class="need">
+      <div class="need-label"><span class="need-name">${needIcons[k]} ${needNames[k]}</span><span>${Math.floor(pct)}%</span></div>
+      <div class="need-bar"><div class="need-fill" style="width:${pct}%; background:${color};"></div></div>
+    </div>`;
+  }).join('');
+
+  // Vitals
+  document.getElementById('v-mood').textContent = Math.floor(state.mood);
+  document.getElementById('v-stress').textContent = Math.floor(state.stress);
+  document.getElementById('v-weight').textContent = Math.floor(state.weight) + 'kg';
+  document.getElementById('v-fitness').textContent = Math.floor(state.fitness);
+
+  // Relationships (NPCs + relatives + partner + kids)
+  const relList = document.getElementById('relationships-list');
+  let relHTML = '';
+  if (state.partner) {
+    relHTML += `<div class="relationship">
+      <div class="rel-header"><span class="rel-name">${state.partner.married?'💍 ':'💕 '}${state.partner.name}</span>
+        <span class="rel-status">${state.partner.married?'Married':'Dating'} · ${state.partner.love}</span></div>
+      <div class="rel-bar"><div class="rel-fill" style="width:${state.partner.love}%;"></div></div>
+    </div>`;
+  }
+  for (const [name, val] of Object.entries(state.relationships)) {
+    let status = 'Stranger';
+    if (val >= 80) status = 'Best Friend';
+    else if (val >= 60) status = 'Good Friend';
+    else if (val >= 35) status = 'Friend';
+    else if (val >= 15) status = 'Acquaintance';
+    relHTML += `<div class="relationship">
+      <div class="rel-header"><span class="rel-name">${name}</span>
+        <span class="rel-status">${status} · ${Math.floor(val)}</span></div>
+      <div class="rel-bar"><div class="rel-fill" style="width:${val}%;"></div></div>
+    </div>`;
+  }
+  for (const r of state.relatives) {
+    relHTML += `<div class="relationship">
+      <div class="rel-header"><span class="rel-name">👨‍👩‍👧 ${r.name}</span>
+        <span class="rel-status">Family · ${Math.floor(r.closeness)}</span></div>
+      <div class="rel-bar"><div class="rel-fill" style="width:${r.closeness}%;"></div></div>
+    </div>`;
+  }
+  for (const k of state.kids) {
+    relHTML += `<div class="relationship">
+      <div class="rel-header"><span class="rel-name">👶 ${k.name}</span>
+        <span class="rel-status">Age ${Math.floor(k.age)}</span></div>
+    </div>`;
+  }
+  relList.innerHTML = relHTML || '<p class="small">Get out and meet people!</p>';
+}
+
+// =============================================================
+// MAIN LOOP
+// =============================================================
+function loop(now) {
+  const dt = Math.min(0.05, (now - state.lastTime) / 1000);
+  state.lastTime = now;
+
+  if (state.charCreated && !state.activeEvent && !state.paused) {
+    const eff = dt * state.speed;
+    if (!state.sim.action) {
+      const arrived = moveAlongPath(state.sim, eff);
+      if (arrived && state.sim.pendingAction) {
+        const cb = state.sim.pendingAction.fn;
+        state.sim.pendingAction = null;
+        cb();
+      }
+    }
+    tickAction(eff);
+    if (!state.sim.action) tickNeeds(eff);
+    else tickNeeds(eff * 0.5);
+    tickNpcs(eff);
+    tickTime(dt);
+
+    // Random life events
+    if (state.gameSeconds - state.lastEventTime > 35 && Math.random() < 0.015 * state.speed) {
+      state.lastEventTime = state.gameSeconds;
+      triggerRandomEvent();
+    }
+  }
+
+  render();
+  updateUI();
+  requestAnimationFrame(loop);
+}
+
+// =============================================================
+// INIT
+// =============================================================
+setupCharCreation();
+updateModeBanner();
+setTimeout(() => {
+  if (state.charCreated) pushNotification("👋 Welcome to your new life!");
+}, 600);
+requestAnimationFrame(t => { state.lastTime = t; loop(t); });
+</script>
+</body>
+</html>
