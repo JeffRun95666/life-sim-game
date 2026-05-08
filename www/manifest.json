@@ -1,0 +1,8 @@
+{
+  "name": "Life Sim Game",
+  "short_name": "LifeSim",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#1f2937",
+  "theme_color": "#6366f1"
+}
